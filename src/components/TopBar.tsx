@@ -7,6 +7,9 @@ import { isMuted, setMuted, sfx } from "../game/sound";
 import { Modal } from "./ui";
 import { TurkeyMap } from "./TurkeyMap";
 
+// Geliştiriciye 300 ₺'lik kahve bağışı linki (Shopier ürün sayfası).
+const COFFEE_URL = "https://www.shopier.com/yedsoft/48218396";
+
 /** Para değişimini yumuşak sayaçla gösterir + uçan delta üretir */
 function useMoneyFx(target: number) {
   const [display, setDisplay] = useState(target);
@@ -141,6 +144,15 @@ export function TopBar() {
         <button onClick={() => setTravelOpen(true)}>🗺️ Seyahat</button>
         <button className="primary" onClick={() => setConfirmEnd(true)}>
           🌙 Günü Bitir
+        </button>
+        <button
+          title="Geliştiriciye 300 ₺ kahve ısmarla 🙏"
+          onClick={() => {
+            sfx.click();
+            window.open(COFFEE_URL, "_blank", "noopener,noreferrer");
+          }}
+        >
+          ☕ Kahve Ismarla
         </button>
         <span className="stat" style={{ marginLeft: 4 }}>
           <span className="label">Oyuncu</span>
