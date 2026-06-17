@@ -381,17 +381,21 @@ function reducer(state: GameState, action: Action): GameState {
         kind: "gelir",
       });
 
-      // İtibar etkisi
-      if (o.car.hiddenFaults.length > 0 && chance(0.65)) {
-        const hit = 5 + o.car.hiddenFaults.length * 2;
+      // İtibar etkisi — dürüst satış itibar kazandırır, gizli arıza nadiren ve ölçülü zarar verir
+      if (o.car.hiddenFaults.length > 0 && chance(0.35)) {
+        const hit = 2 + o.car.hiddenFaults.length;
         s.reputation = Math.max(0, s.reputation - hit);
         log(s, {
           text: `😠 ${c.name} eve varamadan araç arıza yaptı! Sosyal medyada sizi kötüledi. İtibar -${hit}`,
           kind: "uyari",
         });
-      } else if (o.car.knownFaults.length === 0 && profit > 0) {
-        s.reputation = Math.min(100, s.reputation + 2);
-        log(s, { text: "🌟 Sorunsuz satış! İtibar +2", kind: "info" });
+      } else if (o.car.knownFaults.length === 0 && o.car.hiddenFaults.length === 0 && profit > 0) {
+        s.reputation = Math.min(100, s.reputation + 3);
+        log(s, { text: "🌟 Sorunsuz satış! İtibar +3", kind: "info" });
+      } else if (profit > 0) {
+        // Açıkça bilinen kusurlarına rağmen sorunsuz tamamlanan satış da güven kazandırır
+        s.reputation = Math.min(100, s.reputation + 1);
+        log(s, { text: "🙂 Memnun müşteri! İtibar +1", kind: "info" });
       }
       addXp(s, 60 + Math.max(0, Math.floor(profit / 10000)));
       checkMilestones(s);
@@ -404,8 +408,8 @@ function reducer(state: GameState, action: Action): GameState {
       if (!c) return state;
       s.customers = s.customers.filter((x) => x.id !== action.customerId);
       if (action.angry) {
-        s.reputation = Math.max(0, s.reputation - 2);
-        log(s, { text: `😒 ${c.name} galeriden memnun ayrılmadı. İtibar -2`, kind: "uyari" });
+        s.reputation = Math.max(0, s.reputation - 1);
+        log(s, { text: `😒 ${c.name} galeriden memnun ayrılmadı. İtibar -1`, kind: "uyari" });
       }
       return s;
     }

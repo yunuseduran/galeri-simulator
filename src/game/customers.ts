@@ -57,7 +57,7 @@ export function dailyCustomers(state: GameState): Customer[] {
 
   const diffMult =
     state.difficulty === "kolay" ? 1.3 : state.difficulty === "zor" ? 0.7 : 1;
-  const repMult = 0.5 + state.reputation / 60;
+  const repMult = 0.7 + state.reputation / 80;
   const staffMult = state.staff.some((st) => st.role === "danisman") ? 1.4 : 1;
   const fameMult = state.level >= 12 ? 1.25 : 1; // kariyer ayrıcalığı: ünlü galeri
   const base = Math.min(4, sellable.length) * 0.8 * diffMult * repMult * staffMult * fameMult;
