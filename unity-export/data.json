@@ -1,0 +1,1734 @@
+{
+  "meta": {
+    "game": "Galeri Simülatörü",
+    "exportedAt": "2026-06-12T17:52:14.269Z",
+    "source": "web prototipi (React/TS) — E:/galeri-simulator",
+    "note": "Tüm metinler Türkçe. JsonUtility uyumu için sözlük yok, sadece diziler."
+  },
+  "balance": {
+    "currentYear": 2026,
+    "travelCostPerKm": 9,
+    "transportCostPerKm": 14,
+    "expertiseCostBase": 4000,
+    "expertiseCostPerkLevel3": 3000,
+    "expertiseRevealChance": 0.8,
+    "maxListings": 42,
+    "newListingsPerDayMin": 7,
+    "newListingsPerDayMax": 12,
+    "auctionPeriodDays": 5,
+    "auctionStartPriceMin": 0.45,
+    "auctionStartPriceMax": 0.58,
+    "wholesaleRatio": 0.78,
+    "startingMoney": {
+      "kolay": 2500000,
+      "normal": 1500000,
+      "zor": 900000
+    },
+    "weeklyExpenseBase": {
+      "kolay": 25000,
+      "normal": 40000,
+      "zor": 60000
+    },
+    "weeklyExpensePerSlot": 5000,
+    "gallerySlotUpgrades": [
+      {
+        "fromSlots": 4,
+        "toSlots": 6,
+        "cost": 300000
+      },
+      {
+        "fromSlots": 6,
+        "toSlots": 8,
+        "cost": 600000
+      },
+      {
+        "fromSlots": 8,
+        "toSlots": 12,
+        "cost": 1200000
+      }
+    ],
+    "yearlyDepreciation": 0.925,
+    "minDepreciation": 0.12,
+    "expectedKmPerYear": 17000,
+    "partWeights": [
+      {
+        "part": "motor",
+        "weight": 0.32
+      },
+      {
+        "part": "sanziman",
+        "weight": 0.2
+      },
+      {
+        "part": "fren",
+        "weight": 0.12
+      },
+      {
+        "part": "suspansiyon",
+        "weight": 0.12
+      },
+      {
+        "part": "lastik",
+        "weight": 0.08
+      },
+      {
+        "part": "aku",
+        "weight": 0.06
+      },
+      {
+        "part": "klima",
+        "weight": 0.1
+      }
+    ],
+    "testDriveDurationSec": 180,
+    "roadDistanceFactor": 1.32,
+    "avgTravelSpeedKmh": 85
+  },
+  "cities": [
+    {
+      "plate": 1,
+      "name": "Adana",
+      "lat": 37,
+      "lon": 35.32
+    },
+    {
+      "plate": 2,
+      "name": "Adıyaman",
+      "lat": 37.76,
+      "lon": 38.28
+    },
+    {
+      "plate": 3,
+      "name": "Afyonkarahisar",
+      "lat": 38.76,
+      "lon": 30.54
+    },
+    {
+      "plate": 4,
+      "name": "Ağrı",
+      "lat": 39.72,
+      "lon": 43.05
+    },
+    {
+      "plate": 5,
+      "name": "Amasya",
+      "lat": 40.65,
+      "lon": 35.83
+    },
+    {
+      "plate": 6,
+      "name": "Ankara",
+      "lat": 39.93,
+      "lon": 32.86
+    },
+    {
+      "plate": 7,
+      "name": "Antalya",
+      "lat": 36.89,
+      "lon": 30.71
+    },
+    {
+      "plate": 8,
+      "name": "Artvin",
+      "lat": 41.18,
+      "lon": 41.82
+    },
+    {
+      "plate": 9,
+      "name": "Aydın",
+      "lat": 37.85,
+      "lon": 27.85
+    },
+    {
+      "plate": 10,
+      "name": "Balıkesir",
+      "lat": 39.65,
+      "lon": 27.89
+    },
+    {
+      "plate": 11,
+      "name": "Bilecik",
+      "lat": 40.15,
+      "lon": 29.98
+    },
+    {
+      "plate": 12,
+      "name": "Bingöl",
+      "lat": 38.88,
+      "lon": 40.5
+    },
+    {
+      "plate": 13,
+      "name": "Bitlis",
+      "lat": 38.4,
+      "lon": 42.11
+    },
+    {
+      "plate": 14,
+      "name": "Bolu",
+      "lat": 40.74,
+      "lon": 31.61
+    },
+    {
+      "plate": 15,
+      "name": "Burdur",
+      "lat": 37.72,
+      "lon": 30.29
+    },
+    {
+      "plate": 16,
+      "name": "Bursa",
+      "lat": 40.18,
+      "lon": 29.07
+    },
+    {
+      "plate": 17,
+      "name": "Çanakkale",
+      "lat": 40.15,
+      "lon": 26.41
+    },
+    {
+      "plate": 18,
+      "name": "Çankırı",
+      "lat": 40.6,
+      "lon": 33.62
+    },
+    {
+      "plate": 19,
+      "name": "Çorum",
+      "lat": 40.55,
+      "lon": 34.95
+    },
+    {
+      "plate": 20,
+      "name": "Denizli",
+      "lat": 37.78,
+      "lon": 29.09
+    },
+    {
+      "plate": 21,
+      "name": "Diyarbakır",
+      "lat": 37.91,
+      "lon": 40.24
+    },
+    {
+      "plate": 22,
+      "name": "Edirne",
+      "lat": 41.68,
+      "lon": 26.56
+    },
+    {
+      "plate": 23,
+      "name": "Elazığ",
+      "lat": 38.68,
+      "lon": 39.22
+    },
+    {
+      "plate": 24,
+      "name": "Erzincan",
+      "lat": 39.75,
+      "lon": 39.49
+    },
+    {
+      "plate": 25,
+      "name": "Erzurum",
+      "lat": 39.9,
+      "lon": 41.27
+    },
+    {
+      "plate": 26,
+      "name": "Eskişehir",
+      "lat": 39.78,
+      "lon": 30.52
+    },
+    {
+      "plate": 27,
+      "name": "Gaziantep",
+      "lat": 37.07,
+      "lon": 37.38
+    },
+    {
+      "plate": 28,
+      "name": "Giresun",
+      "lat": 40.91,
+      "lon": 38.39
+    },
+    {
+      "plate": 29,
+      "name": "Gümüşhane",
+      "lat": 40.46,
+      "lon": 39.48
+    },
+    {
+      "plate": 30,
+      "name": "Hakkari",
+      "lat": 37.58,
+      "lon": 43.74
+    },
+    {
+      "plate": 31,
+      "name": "Hatay",
+      "lat": 36.2,
+      "lon": 36.16
+    },
+    {
+      "plate": 32,
+      "name": "Isparta",
+      "lat": 37.77,
+      "lon": 30.55
+    },
+    {
+      "plate": 33,
+      "name": "Mersin",
+      "lat": 36.81,
+      "lon": 34.64
+    },
+    {
+      "plate": 34,
+      "name": "İstanbul",
+      "lat": 41.01,
+      "lon": 28.98
+    },
+    {
+      "plate": 35,
+      "name": "İzmir",
+      "lat": 38.42,
+      "lon": 27.13
+    },
+    {
+      "plate": 36,
+      "name": "Kars",
+      "lat": 40.6,
+      "lon": 43.1
+    },
+    {
+      "plate": 37,
+      "name": "Kastamonu",
+      "lat": 41.38,
+      "lon": 33.78
+    },
+    {
+      "plate": 38,
+      "name": "Kayseri",
+      "lat": 38.73,
+      "lon": 35.49
+    },
+    {
+      "plate": 39,
+      "name": "Kırklareli",
+      "lat": 41.74,
+      "lon": 27.23
+    },
+    {
+      "plate": 40,
+      "name": "Kırşehir",
+      "lat": 39.15,
+      "lon": 34.16
+    },
+    {
+      "plate": 41,
+      "name": "Kocaeli",
+      "lat": 40.85,
+      "lon": 29.88
+    },
+    {
+      "plate": 42,
+      "name": "Konya",
+      "lat": 37.87,
+      "lon": 32.48
+    },
+    {
+      "plate": 43,
+      "name": "Kütahya",
+      "lat": 39.42,
+      "lon": 29.98
+    },
+    {
+      "plate": 44,
+      "name": "Malatya",
+      "lat": 38.35,
+      "lon": 38.31
+    },
+    {
+      "plate": 45,
+      "name": "Manisa",
+      "lat": 38.61,
+      "lon": 27.43
+    },
+    {
+      "plate": 46,
+      "name": "Kahramanmaraş",
+      "lat": 37.58,
+      "lon": 36.94
+    },
+    {
+      "plate": 47,
+      "name": "Mardin",
+      "lat": 37.31,
+      "lon": 40.74
+    },
+    {
+      "plate": 48,
+      "name": "Muğla",
+      "lat": 37.22,
+      "lon": 28.36
+    },
+    {
+      "plate": 49,
+      "name": "Muş",
+      "lat": 38.73,
+      "lon": 41.49
+    },
+    {
+      "plate": 50,
+      "name": "Nevşehir",
+      "lat": 38.62,
+      "lon": 34.71
+    },
+    {
+      "plate": 51,
+      "name": "Niğde",
+      "lat": 37.97,
+      "lon": 34.68
+    },
+    {
+      "plate": 52,
+      "name": "Ordu",
+      "lat": 40.98,
+      "lon": 37.88
+    },
+    {
+      "plate": 53,
+      "name": "Rize",
+      "lat": 41.02,
+      "lon": 40.52
+    },
+    {
+      "plate": 54,
+      "name": "Sakarya",
+      "lat": 40.77,
+      "lon": 30.4
+    },
+    {
+      "plate": 55,
+      "name": "Samsun",
+      "lat": 41.29,
+      "lon": 36.33
+    },
+    {
+      "plate": 56,
+      "name": "Siirt",
+      "lat": 37.93,
+      "lon": 41.94
+    },
+    {
+      "plate": 57,
+      "name": "Sinop",
+      "lat": 42.03,
+      "lon": 35.15
+    },
+    {
+      "plate": 58,
+      "name": "Sivas",
+      "lat": 39.75,
+      "lon": 37.02
+    },
+    {
+      "plate": 59,
+      "name": "Tekirdağ",
+      "lat": 40.98,
+      "lon": 27.51
+    },
+    {
+      "plate": 60,
+      "name": "Tokat",
+      "lat": 40.31,
+      "lon": 36.55
+    },
+    {
+      "plate": 61,
+      "name": "Trabzon",
+      "lat": 41,
+      "lon": 39.72
+    },
+    {
+      "plate": 62,
+      "name": "Tunceli",
+      "lat": 39.11,
+      "lon": 39.55
+    },
+    {
+      "plate": 63,
+      "name": "Şanlıurfa",
+      "lat": 37.16,
+      "lon": 38.79
+    },
+    {
+      "plate": 64,
+      "name": "Uşak",
+      "lat": 38.68,
+      "lon": 29.41
+    },
+    {
+      "plate": 65,
+      "name": "Van",
+      "lat": 38.49,
+      "lon": 43.38
+    },
+    {
+      "plate": 66,
+      "name": "Yozgat",
+      "lat": 39.82,
+      "lon": 34.81
+    },
+    {
+      "plate": 67,
+      "name": "Zonguldak",
+      "lat": 41.45,
+      "lon": 31.79
+    },
+    {
+      "plate": 68,
+      "name": "Aksaray",
+      "lat": 38.37,
+      "lon": 34.03
+    },
+    {
+      "plate": 69,
+      "name": "Bayburt",
+      "lat": 40.26,
+      "lon": 40.22
+    },
+    {
+      "plate": 70,
+      "name": "Karaman",
+      "lat": 37.18,
+      "lon": 33.22
+    },
+    {
+      "plate": 71,
+      "name": "Kırıkkale",
+      "lat": 39.85,
+      "lon": 33.51
+    },
+    {
+      "plate": 72,
+      "name": "Batman",
+      "lat": 37.88,
+      "lon": 41.13
+    },
+    {
+      "plate": 73,
+      "name": "Şırnak",
+      "lat": 37.52,
+      "lon": 42.46
+    },
+    {
+      "plate": 74,
+      "name": "Bartın",
+      "lat": 41.64,
+      "lon": 32.34
+    },
+    {
+      "plate": 75,
+      "name": "Ardahan",
+      "lat": 41.11,
+      "lon": 42.7
+    },
+    {
+      "plate": 76,
+      "name": "Iğdır",
+      "lat": 39.92,
+      "lon": 44.05
+    },
+    {
+      "plate": 77,
+      "name": "Yalova",
+      "lat": 40.65,
+      "lon": 29.27
+    },
+    {
+      "plate": 78,
+      "name": "Karabük",
+      "lat": 41.2,
+      "lon": 32.62
+    },
+    {
+      "plate": 79,
+      "name": "Kilis",
+      "lat": 36.72,
+      "lon": 37.12
+    },
+    {
+      "plate": 80,
+      "name": "Osmaniye",
+      "lat": 37.07,
+      "lon": 36.25
+    },
+    {
+      "plate": 81,
+      "name": "Düzce",
+      "lat": 40.84,
+      "lon": 31.16
+    }
+  ],
+  "models": [
+    {
+      "brand": "Tofaş",
+      "model": "Şahin 1.6",
+      "segment": "klasik",
+      "basePrice": 420000,
+      "minYear": 1990,
+      "maxYear": 2002,
+      "fuels": [
+        "benzin",
+        "lpg"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Tofaş",
+      "model": "Doğan SLX",
+      "segment": "klasik",
+      "basePrice": 480000,
+      "minYear": 1990,
+      "maxYear": 2001,
+      "fuels": [
+        "benzin",
+        "lpg"
+      ],
+      "weight": 4
+    },
+    {
+      "brand": "Renault",
+      "model": "Toros",
+      "segment": "klasik",
+      "basePrice": 390000,
+      "minYear": 1991,
+      "maxYear": 2000,
+      "fuels": [
+        "benzin",
+        "lpg"
+      ],
+      "weight": 4
+    },
+    {
+      "brand": "Fiat",
+      "model": "Egea 1.4 Fire",
+      "segment": "ekonomi",
+      "basePrice": 1150000,
+      "minYear": 2016,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "lpg",
+        "dizel"
+      ],
+      "weight": 10
+    },
+    {
+      "brand": "Renault",
+      "model": "Clio 1.0 TCe",
+      "segment": "ekonomi",
+      "basePrice": 1250000,
+      "minYear": 2013,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "lpg"
+      ],
+      "weight": 9
+    },
+    {
+      "brand": "Renault",
+      "model": "Symbol 1.5 dCi",
+      "segment": "ekonomi",
+      "basePrice": 850000,
+      "minYear": 2009,
+      "maxYear": 2021,
+      "fuels": [
+        "dizel",
+        "benzin"
+      ],
+      "weight": 7
+    },
+    {
+      "brand": "Hyundai",
+      "model": "i20 1.4 MPI",
+      "segment": "ekonomi",
+      "basePrice": 1200000,
+      "minYear": 2012,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin"
+      ],
+      "weight": 7
+    },
+    {
+      "brand": "Opel",
+      "model": "Corsa 1.2",
+      "segment": "ekonomi",
+      "basePrice": 1180000,
+      "minYear": 2010,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin"
+      ],
+      "weight": 6
+    },
+    {
+      "brand": "Dacia",
+      "model": "Sandero Stepway",
+      "segment": "ekonomi",
+      "basePrice": 1100000,
+      "minYear": 2013,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "lpg"
+      ],
+      "weight": 6
+    },
+    {
+      "brand": "Peugeot",
+      "model": "208 1.2 PureTech",
+      "segment": "ekonomi",
+      "basePrice": 1350000,
+      "minYear": 2013,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Toyota",
+      "model": "Corolla 1.6",
+      "segment": "orta",
+      "basePrice": 1750000,
+      "minYear": 2005,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "lpg",
+        "hibrit"
+      ],
+      "weight": 9
+    },
+    {
+      "brand": "Honda",
+      "model": "Civic 1.6 Eco",
+      "segment": "orta",
+      "basePrice": 1850000,
+      "minYear": 2006,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "lpg"
+      ],
+      "weight": 8
+    },
+    {
+      "brand": "Renault",
+      "model": "Megane 1.3 TCe",
+      "segment": "orta",
+      "basePrice": 1550000,
+      "minYear": 2010,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 8
+    },
+    {
+      "brand": "Volkswagen",
+      "model": "Golf 1.4 TSI",
+      "segment": "orta",
+      "basePrice": 1900000,
+      "minYear": 2008,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin"
+      ],
+      "weight": 7
+    },
+    {
+      "brand": "Ford",
+      "model": "Focus 1.5 Ti-VCT",
+      "segment": "orta",
+      "basePrice": 1500000,
+      "minYear": 2008,
+      "maxYear": 2025,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 7
+    },
+    {
+      "brand": "Opel",
+      "model": "Astra 1.4 Turbo",
+      "segment": "orta",
+      "basePrice": 1450000,
+      "minYear": 2008,
+      "maxYear": 2025,
+      "fuels": [
+        "benzin"
+      ],
+      "weight": 6
+    },
+    {
+      "brand": "Skoda",
+      "model": "Octavia 1.5 TSI",
+      "segment": "orta",
+      "basePrice": 1800000,
+      "minYear": 2010,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 6
+    },
+    {
+      "brand": "Fiat",
+      "model": "Egea Cross 1.5 Hybrid",
+      "segment": "orta",
+      "basePrice": 1500000,
+      "minYear": 2021,
+      "maxYear": 2026,
+      "fuels": [
+        "hibrit"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Togg",
+      "model": "T10X V2",
+      "segment": "suv",
+      "basePrice": 2300000,
+      "minYear": 2023,
+      "maxYear": 2026,
+      "fuels": [
+        "elektrik"
+      ],
+      "weight": 4
+    },
+    {
+      "brand": "Volkswagen",
+      "model": "Passat 1.5 TSI",
+      "segment": "ust",
+      "basePrice": 2600000,
+      "minYear": 2010,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 6
+    },
+    {
+      "brand": "BMW",
+      "model": "3.20i",
+      "segment": "ust",
+      "basePrice": 3400000,
+      "minYear": 2005,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Mercedes-Benz",
+      "model": "C200 AMG",
+      "segment": "ust",
+      "basePrice": 3700000,
+      "minYear": 2008,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Audi",
+      "model": "A4 40 TFSI",
+      "segment": "ust",
+      "basePrice": 3500000,
+      "minYear": 2008,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 4
+    },
+    {
+      "brand": "Volvo",
+      "model": "S60 T4",
+      "segment": "ust",
+      "basePrice": 2900000,
+      "minYear": 2012,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin"
+      ],
+      "weight": 3
+    },
+    {
+      "brand": "Skoda",
+      "model": "Superb 1.5 TSI",
+      "segment": "ust",
+      "basePrice": 2500000,
+      "minYear": 2012,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 4
+    },
+    {
+      "brand": "Nissan",
+      "model": "Qashqai 1.3 DIG-T",
+      "segment": "suv",
+      "basePrice": 1950000,
+      "minYear": 2010,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 7
+    },
+    {
+      "brand": "Dacia",
+      "model": "Duster 1.3 TCe",
+      "segment": "suv",
+      "basePrice": 1450000,
+      "minYear": 2012,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel",
+        "lpg"
+      ],
+      "weight": 7
+    },
+    {
+      "brand": "Hyundai",
+      "model": "Tucson 1.6 T-GDI",
+      "segment": "suv",
+      "basePrice": 2400000,
+      "minYear": 2015,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "hibrit"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Kia",
+      "model": "Sportage 1.6 CRDi",
+      "segment": "suv",
+      "basePrice": 2300000,
+      "minYear": 2014,
+      "maxYear": 2026,
+      "fuels": [
+        "dizel",
+        "benzin"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Peugeot",
+      "model": "3008 1.2 PureTech",
+      "segment": "suv",
+      "basePrice": 2350000,
+      "minYear": 2016,
+      "maxYear": 2026,
+      "fuels": [
+        "benzin",
+        "dizel"
+      ],
+      "weight": 5
+    },
+    {
+      "brand": "Fiat",
+      "model": "Doblo 1.6 Multijet",
+      "segment": "ticari",
+      "basePrice": 1150000,
+      "minYear": 2008,
+      "maxYear": 2025,
+      "fuels": [
+        "dizel"
+      ],
+      "weight": 6
+    },
+    {
+      "brand": "Ford",
+      "model": "Transit Custom",
+      "segment": "ticari",
+      "basePrice": 1900000,
+      "minYear": 2013,
+      "maxYear": 2026,
+      "fuels": [
+        "dizel"
+      ],
+      "weight": 4
+    },
+    {
+      "brand": "Volkswagen",
+      "model": "Transporter 2.0 TDI",
+      "segment": "ticari",
+      "basePrice": 2200000,
+      "minYear": 2010,
+      "maxYear": 2026,
+      "fuels": [
+        "dizel"
+      ],
+      "weight": 4
+    },
+    {
+      "brand": "Renault",
+      "model": "Kangoo Multix",
+      "segment": "ticari",
+      "basePrice": 950000,
+      "minYear": 2008,
+      "maxYear": 2021,
+      "fuels": [
+        "dizel"
+      ],
+      "weight": 4
+    }
+  ],
+  "colors": [
+    "Beyaz",
+    "Siyah",
+    "Gri",
+    "Gümüş",
+    "Kırmızı",
+    "Lacivert",
+    "Mavi",
+    "Bordo",
+    "Yeşil",
+    "Kahverengi"
+  ],
+  "faultTemplates": [
+    {
+      "part": "motor",
+      "label": "Motor yağ yakıyor",
+      "costPctMin": 3,
+      "costPctMax": 6,
+      "valuePctMin": 5,
+      "valuePctMax": 9,
+      "drivable": true,
+      "driveHint": "Egzozdan mavi duman geliyor, yağ kokusu var..."
+    },
+    {
+      "part": "motor",
+      "label": "Motor tekliyor (ateşleme sorunu)",
+      "costPctMin": 1,
+      "costPctMax": 3,
+      "valuePctMin": 3,
+      "valuePctMax": 6,
+      "drivable": true,
+      "driveHint": "Motor ara ara tekliyor, çekişten düşüyor!"
+    },
+    {
+      "part": "motor",
+      "label": "Hararet sorunu (termostat/radyatör)",
+      "costPctMin": 1.5,
+      "costPctMax": 3,
+      "valuePctMin": 3,
+      "valuePctMax": 6,
+      "drivable": true,
+      "driveHint": "Hararet göstergesi yükseliyor!"
+    },
+    {
+      "part": "motor",
+      "label": "Triger seti ömrünü doldurmuş",
+      "costPctMin": 1,
+      "costPctMax": 2.5,
+      "valuePctMin": 2,
+      "valuePctMax": 4,
+      "drivable": true,
+      "driveHint": "Motordan tıkırtı sesi geliyor..."
+    },
+    {
+      "part": "sanziman",
+      "label": "Şanzıman vites atlatıyor",
+      "costPctMin": 3,
+      "costPctMax": 7,
+      "valuePctMin": 5,
+      "valuePctMax": 10,
+      "drivable": true,
+      "driveHint": "Vites geçişlerinde sert vuruntu hissediliyor!"
+    },
+    {
+      "part": "sanziman",
+      "label": "Debriyaj balatası bitmiş",
+      "costPctMin": 1.5,
+      "costPctMax": 3,
+      "valuePctMin": 2,
+      "valuePctMax": 5,
+      "drivable": true,
+      "driveHint": "Debriyaj kavramıyor, devir yükseliyor ama hız artmıyor..."
+    },
+    {
+      "part": "fren",
+      "label": "Fren balata ve diskleri bitik",
+      "costPctMin": 0.8,
+      "costPctMax": 1.8,
+      "valuePctMin": 1.5,
+      "valuePctMax": 3,
+      "drivable": true,
+      "driveHint": "Frenler çok zayıf, geç yavaşlıyor!"
+    },
+    {
+      "part": "fren",
+      "label": "ABS arızası",
+      "costPctMin": 1,
+      "costPctMax": 2.5,
+      "valuePctMin": 2,
+      "valuePctMax": 4,
+      "drivable": true,
+      "driveHint": "Sert frende tekerlek kilitleniyor, ABS devreye girmiyor!"
+    },
+    {
+      "part": "suspansiyon",
+      "label": "Amortisörler patlak",
+      "costPctMin": 1.2,
+      "costPctMax": 2.5,
+      "valuePctMin": 2,
+      "valuePctMax": 4,
+      "drivable": true,
+      "driveHint": "Araç yatıyor, virajda sallanıyor..."
+    },
+    {
+      "part": "suspansiyon",
+      "label": "Rot-balans bozuk, araç çekiyor",
+      "costPctMin": 0.4,
+      "costPctMax": 1,
+      "valuePctMin": 1,
+      "valuePctMax": 2.5,
+      "drivable": true,
+      "driveHint": "Direksiyon bir tarafa çekiyor!"
+    },
+    {
+      "part": "lastik",
+      "label": "Lastikler ömrünü doldurmuş",
+      "costPctMin": 0.8,
+      "costPctMax": 1.5,
+      "valuePctMin": 1,
+      "valuePctMax": 2,
+      "drivable": true,
+      "driveHint": "Lastikler kayıyor, yol tutuş çok kötü..."
+    },
+    {
+      "part": "aku",
+      "label": "Akü zayıf, marş güç alıyor",
+      "costPctMin": 0.3,
+      "costPctMax": 0.6,
+      "valuePctMin": 0.5,
+      "valuePctMax": 1,
+      "drivable": true,
+      "driveHint": "Marş zor bastı, akü zayıf görünüyor..."
+    },
+    {
+      "part": "klima",
+      "label": "Klima soğutmuyor (kompresör)",
+      "costPctMin": 0.8,
+      "costPctMax": 2,
+      "valuePctMin": 1,
+      "valuePctMax": 2.5,
+      "drivable": true,
+      "driveHint": "Klimayı açtınız ama sıcak hava üflüyor..."
+    }
+  ],
+  "staff": [
+    {
+      "role": "usta",
+      "label": "Usta (Tamirci)",
+      "emoji": "👨‍🔧",
+      "weeklySalary": 30000,
+      "desc": "Atölye işleri %15 daha ucuz ve 1 gün daha hızlı biter (en az 1 gün)."
+    },
+    {
+      "role": "danisman",
+      "label": "Satış Danışmanı",
+      "emoji": "👨‍💼",
+      "weeklySalary": 25000,
+      "desc": "Galeriye daha fazla müşteri gelir ve müşteriler biraz daha cömert pazarlık eder."
+    },
+    {
+      "role": "detayci",
+      "label": "Detaycı (Temizlikçi)",
+      "emoji": "🧽",
+      "weeklySalary": 15000,
+      "desc": "Vitrindeki araçlar tozlanmaz; temizlikleri her gün biraz artar."
+    }
+  ],
+  "loanOffers": [
+    {
+      "key": "esnaf",
+      "name": "Esnaf Kredisi",
+      "principal": 250000,
+      "interestPct": 8,
+      "termDays": 20,
+      "minReputation": 0
+    },
+    {
+      "key": "isletme",
+      "name": "İşletme Kredisi",
+      "principal": 750000,
+      "interestPct": 12,
+      "termDays": 30,
+      "minReputation": 40
+    },
+    {
+      "key": "yatirim",
+      "name": "Büyük Yatırım Kredisi",
+      "principal": 2000000,
+      "interestPct": 16,
+      "termDays": 40,
+      "minReputation": 65
+    }
+  ],
+  "perks": [
+    {
+      "level": 3,
+      "emoji": "🔍",
+      "label": "Ekspertiz anlaşması: ekspertiz ücreti 4.000 → 3.000 ₺"
+    },
+    {
+      "level": 5,
+      "emoji": "⛽",
+      "label": "Yakıt kartı: yol masrafları %15 indirimli"
+    },
+    {
+      "level": 8,
+      "emoji": "🗣️",
+      "label": "İkna kabiliyeti: müşteriler %3 daha cömert öder"
+    },
+    {
+      "level": 10,
+      "emoji": "🔧",
+      "label": "Sanayi dostu: atölye işleri %10 indirimli"
+    },
+    {
+      "level": 12,
+      "emoji": "🌟",
+      "label": "Ünlü galeri: her gün daha fazla müşteri uğrar"
+    },
+    {
+      "level": 15,
+      "emoji": "🔨",
+      "label": "Mezat locası: mezat araçlarının nakliyesi yarı fiyat"
+    },
+    {
+      "level": 20,
+      "emoji": "🧾",
+      "label": "Vergi avukatı: haftalık giderler %15 düşer"
+    }
+  ],
+  "achievements": [
+    {
+      "id": "satis",
+      "emoji": "🤝",
+      "name": "Satış Ustası",
+      "unit": "satış",
+      "thresholds": [
+        1,
+        5,
+        15,
+        40,
+        100
+      ],
+      "finite": false,
+      "metricKey": "satis"
+    },
+    {
+      "id": "alim",
+      "emoji": "🛒",
+      "name": "Koleksiyoncu",
+      "unit": "alım",
+      "thresholds": [
+        1,
+        5,
+        15,
+        40,
+        100
+      ],
+      "finite": false,
+      "metricKey": "alim"
+    },
+    {
+      "id": "kar",
+      "emoji": "💰",
+      "name": "Kâr Makinesi",
+      "unit": "₺ kâr",
+      "thresholds": [
+        100000,
+        500000,
+        2000000,
+        5000000,
+        15000000
+      ],
+      "finite": false,
+      "metricKey": "kar"
+    },
+    {
+      "id": "gezgin",
+      "emoji": "🗺️",
+      "name": "Anadolu Gezgini",
+      "unit": "il",
+      "thresholds": [
+        3,
+        10,
+        25,
+        50,
+        81
+      ],
+      "finite": true,
+      "metricKey": "gezgin"
+    },
+    {
+      "id": "mezat",
+      "emoji": "🔨",
+      "name": "Mezat Kurdu",
+      "unit": "mezat",
+      "thresholds": [
+        1,
+        3,
+        10,
+        25,
+        60
+      ],
+      "finite": false,
+      "metricKey": "mezat"
+    },
+    {
+      "id": "tamir",
+      "emoji": "🔧",
+      "name": "Usta Eller",
+      "unit": "iş",
+      "thresholds": [
+        5,
+        15,
+        40,
+        100,
+        250
+      ],
+      "finite": false,
+      "metricKey": "tamir"
+    },
+    {
+      "id": "yol",
+      "emoji": "🛣️",
+      "name": "Yol Canavarı",
+      "unit": "km",
+      "thresholds": [
+        1000,
+        5000,
+        20000,
+        50000,
+        120000
+      ],
+      "finite": false,
+      "metricKey": "yol"
+    }
+  ],
+  "career": {
+    "levels": [
+      {
+        "level": 1,
+        "xpToNext": 500,
+        "reward": 50000,
+        "title": "Çaylak"
+      },
+      {
+        "level": 2,
+        "xpToNext": 1250,
+        "reward": 65000,
+        "title": "Acemi Galerici"
+      },
+      {
+        "level": 3,
+        "xpToNext": 2200,
+        "reward": 80000,
+        "title": "Mahalle Esnafı"
+      },
+      {
+        "level": 4,
+        "xpToNext": 3250,
+        "reward": 95000,
+        "title": "Pazarlıkçı"
+      },
+      {
+        "level": 5,
+        "xpToNext": 4400,
+        "reward": 110000,
+        "title": "Sanayi Esnafı"
+      },
+      {
+        "level": 6,
+        "xpToNext": 5600,
+        "reward": 125000,
+        "title": "Güvenilir Satıcı"
+      },
+      {
+        "level": 7,
+        "xpToNext": 6900,
+        "reward": 140000,
+        "title": "Pazarlık Kurdu"
+      },
+      {
+        "level": 8,
+        "xpToNext": 8300,
+        "reward": 155000,
+        "title": "Usta Galerici"
+      },
+      {
+        "level": 9,
+        "xpToNext": 9700,
+        "reward": 170000,
+        "title": "Piyasa Bilirkişisi"
+      },
+      {
+        "level": 10,
+        "xpToNext": 11200,
+        "reward": 185000,
+        "title": "Oto Baronu"
+      },
+      {
+        "level": 11,
+        "xpToNext": 12750,
+        "reward": 200000,
+        "title": "Oto Baronu"
+      },
+      {
+        "level": 12,
+        "xpToNext": 14300,
+        "reward": 215000,
+        "title": "İl Meşhuru"
+      },
+      {
+        "level": 13,
+        "xpToNext": 15950,
+        "reward": 230000,
+        "title": "İl Meşhuru"
+      },
+      {
+        "level": 14,
+        "xpToNext": 17650,
+        "reward": 245000,
+        "title": "Bölge Devi"
+      },
+      {
+        "level": 15,
+        "xpToNext": 19350,
+        "reward": 260000,
+        "title": "Bölge Devi"
+      },
+      {
+        "level": 16,
+        "xpToNext": 21100,
+        "reward": 275000,
+        "title": "Ulusal Marka"
+      },
+      {
+        "level": 17,
+        "xpToNext": 22900,
+        "reward": 290000,
+        "title": "Ulusal Marka"
+      },
+      {
+        "level": 18,
+        "xpToNext": 24750,
+        "reward": 305000,
+        "title": "Otomotiv Patronu"
+      },
+      {
+        "level": 19,
+        "xpToNext": 26600,
+        "reward": 320000,
+        "title": "Otomotiv Patronu"
+      },
+      {
+        "level": 20,
+        "xpToNext": 28550,
+        "reward": 335000,
+        "title": "Galeri İmparatoru"
+      },
+      {
+        "level": 21,
+        "xpToNext": 30500,
+        "reward": 350000,
+        "title": "Otomotiv Efsanesi 1"
+      },
+      {
+        "level": 22,
+        "xpToNext": 32450,
+        "reward": 365000,
+        "title": "Otomotiv Efsanesi 2"
+      },
+      {
+        "level": 23,
+        "xpToNext": 34450,
+        "reward": 380000,
+        "title": "Otomotiv Efsanesi 3"
+      },
+      {
+        "level": 24,
+        "xpToNext": 36500,
+        "reward": 395000,
+        "title": "Otomotiv Efsanesi 4"
+      },
+      {
+        "level": 25,
+        "xpToNext": 38550,
+        "reward": 410000,
+        "title": "Otomotiv Efsanesi 5"
+      },
+      {
+        "level": 26,
+        "xpToNext": 40650,
+        "reward": 425000,
+        "title": "Otomotiv Efsanesi 6"
+      },
+      {
+        "level": 27,
+        "xpToNext": 42800,
+        "reward": 440000,
+        "title": "Otomotiv Efsanesi 7"
+      },
+      {
+        "level": 28,
+        "xpToNext": 44950,
+        "reward": 455000,
+        "title": "Otomotiv Efsanesi 8"
+      },
+      {
+        "level": 29,
+        "xpToNext": 47100,
+        "reward": 470000,
+        "title": "Otomotiv Efsanesi 9"
+      },
+      {
+        "level": 30,
+        "xpToNext": 49350,
+        "reward": 485000,
+        "title": "Otomotiv Efsanesi 10"
+      }
+    ]
+  },
+  "names": {
+    "first": [
+      "Ahmet",
+      "Mehmet",
+      "Mustafa",
+      "Ali",
+      "Hüseyin",
+      "Hasan",
+      "İbrahim",
+      "Osman",
+      "Yusuf",
+      "Murat",
+      "Ömer",
+      "Ramazan",
+      "Halil",
+      "Süleyman",
+      "Abdullah",
+      "Emre",
+      "Burak",
+      "Serkan",
+      "Volkan",
+      "Tolga",
+      "Kemal",
+      "Cemal",
+      "Selim",
+      "Erkan",
+      "Fatma",
+      "Ayşe",
+      "Emine",
+      "Hatice",
+      "Zeynep",
+      "Elif",
+      "Meryem",
+      "Şerife",
+      "Sultan",
+      "Hanife",
+      "Merve",
+      "Esra",
+      "Büşra",
+      "Seda",
+      "Gamze",
+      "Derya",
+      "Tuncay",
+      "Şükrü",
+      "Necati",
+      "Cevdet",
+      "Bahattin",
+      "Nurettin",
+      "Sadık",
+      "Veli"
+    ],
+    "last": [
+      "Yılmaz",
+      "Kaya",
+      "Demir",
+      "Şahin",
+      "Çelik",
+      "Yıldız",
+      "Yıldırım",
+      "Öztürk",
+      "Aydın",
+      "Özdemir",
+      "Arslan",
+      "Doğan",
+      "Kılıç",
+      "Aslan",
+      "Çetin",
+      "Kara",
+      "Koç",
+      "Kurt",
+      "Özkan",
+      "Şimşek",
+      "Polat",
+      "Korkmaz",
+      "Çakır",
+      "Erdoğan",
+      "Güneş",
+      "Akın",
+      "Ateş",
+      "Bulut",
+      "Turan",
+      "Avcı",
+      "Sarı",
+      "Güler",
+      "Taş",
+      "Aksoy",
+      "Bal",
+      "Keskin",
+      "Tekin",
+      "Karaca",
+      "Sönmez",
+      "Uçar"
+    ],
+    "gallerySuffixes": [
+      "Otomotiv",
+      "Oto Galeri",
+      "Motors",
+      "Auto",
+      "Oto Pazarı"
+    ]
+  },
+  "labels": {
+    "parts": [
+      {
+        "key": "motor",
+        "label": "Motor"
+      },
+      {
+        "key": "sanziman",
+        "label": "Şanzıman"
+      },
+      {
+        "key": "fren",
+        "label": "Frenler"
+      },
+      {
+        "key": "suspansiyon",
+        "label": "Süspansiyon"
+      },
+      {
+        "key": "lastik",
+        "label": "Lastikler"
+      },
+      {
+        "key": "aku",
+        "label": "Akü"
+      },
+      {
+        "key": "klima",
+        "label": "Klima"
+      }
+    ],
+    "segments": [
+      {
+        "key": "ekonomi",
+        "label": "Ekonomi"
+      },
+      {
+        "key": "orta",
+        "label": "Orta Sınıf"
+      },
+      {
+        "key": "ust",
+        "label": "Üst Sınıf"
+      },
+      {
+        "key": "suv",
+        "label": "SUV"
+      },
+      {
+        "key": "ticari",
+        "label": "Ticari"
+      },
+      {
+        "key": "klasik",
+        "label": "Klasik"
+      }
+    ],
+    "fuels": [
+      {
+        "key": "benzin",
+        "label": "Benzin"
+      },
+      {
+        "key": "dizel",
+        "label": "Dizel"
+      },
+      {
+        "key": "lpg",
+        "label": "LPG"
+      },
+      {
+        "key": "hibrit",
+        "label": "Hibrit"
+      },
+      {
+        "key": "elektrik",
+        "label": "Elektrik"
+      }
+    ],
+    "cosmetics": [
+      {
+        "key": "seatCover",
+        "label": "Döşeme / Koltuk Kılıfı"
+      },
+      {
+        "key": "rims",
+        "label": "Çelik Jant Seti"
+      },
+      {
+        "key": "multimedia",
+        "label": "Multimedya Sistemi"
+      },
+      {
+        "key": "tint",
+        "label": "Cam Filmi"
+      },
+      {
+        "key": "ceramic",
+        "label": "Seramik Kaplama"
+      }
+    ]
+  }
+}

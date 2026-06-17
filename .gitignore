@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Bundled JDK / local tooling (do not commit)
+.tooling/
+.claude/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Capacitor / Android build artifacts
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/app/release/
+
+# Generated export bundles
+scripts/.export-unity.cjs
+
+# Env & secrets
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
