@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { CITIES, cityByPlate, roadDistance } from "../data/cities";
 import { fmtMoney, travelCostFor, travelHours, useGame } from "../game/state";
+import { currentUser, logout } from "../game/auth";
 import { titleFor, xpNeeded } from "../game/career";
 import { isMuted, setMuted, sfx } from "../game/sound";
 import { Modal } from "./ui";
@@ -140,6 +141,19 @@ export function TopBar() {
         <button onClick={() => setTravelOpen(true)}>🗺️ Seyahat</button>
         <button className="primary" onClick={() => setConfirmEnd(true)}>
           🌙 Günü Bitir
+        </button>
+        <span className="stat" style={{ marginLeft: 4 }}>
+          <span className="label">Oyuncu</span>
+          <span className="value">👤 {currentUser()}</span>
+        </span>
+        <button
+          title="Çıkış yap (ilerlemen kayıtlı kalır)"
+          onClick={() => {
+            logout();
+            window.location.reload();
+          }}
+        >
+          🚪 Çıkış
         </button>
       </div>
 

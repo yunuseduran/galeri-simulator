@@ -32,6 +32,9 @@ Sonra tarayıcıda **http://localhost:5180** adresini açın.
 - **🎖️ Sonsuz kariyer** — Oyun bitmez! Her eylem XP verir (alım +40, satış +60 ve kâra göre bonus, mezat +60, tamir +15...). Seviyeler sonsuzdur; her seviye büyüyen para ödülü, unvan ("Çaylak" → "Oto Baronu" → "Otomotiv Efsanesi N") ve belirli seviyelerde **kalıcı ayrıcalıklar** getirir: ucuz ekspertiz (S3), yakıt indirimi (S5), cömert müşteriler (S8), sanayi indirimi (S10), ünlü galeri (S12), mezat nakliyesi yarı fiyat (S15), vergi indirimi (S20).
 - **Kademeli başarımlar** — Satış Ustası, Koleksiyoncu, Kâr Makinesi, Anadolu Gezgini (81 il), Mezat Kurdu, Usta Eller, Yol Canavarı... Her kademe para + XP öder; eşikler sonsuza kadar büyür, ödüller de öyle.
 
+- **👤 Hesap & giriş** — Kullanıcı adı + şifreyle kayıt ol / giriş yap. Oturum tarayıcıda saklanır; tarayıcıyı kapatsan bile açık kalır ve **kaldığın yerden devam edersin**. Her kullanıcının ilerlemesi ayrı kaydedilir.
+- **👥 Oyuncular Ligi** — Aynı cihazda kayıtlı tüm oyuncular toplam kâra göre sıralanır. Lig sekmesinde "Oyuncular Ligi" (gerçek hesaplar) ve "Yapay Zekâ Rakipler" olarak iki görünüm; galeri, merkez, seviye, satış, kâr ve itibar detaylarıyla.
+
 ## Teknoloji
 
-Vite + React + TypeScript. Kayıt: tarayıcı localStorage (otomatik).
+Vite + React + TypeScript. Kayıt: tarayıcı localStorage (otomatik, hesap bazlı).

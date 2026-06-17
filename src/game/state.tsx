@@ -23,9 +23,15 @@ import { generateRivals, playerRank, updateRivals } from "./rivals";
 import { addXp, checkMilestones } from "./career";
 import { carValue } from "./valuation";
 import { chance, randInt, roundMoney, uid } from "./rng";
+import { currentUser, saveKeyFor, upsertProfile } from "./auth";
 
-const SAVE_KEY = "galeri-sim-save-v1";
 const SAVE_VERSION = 1;
+
+/** O an giriş yapmış kullanıcının kayıt anahtarı (kullanıcı yoksa null). */
+function activeSaveKey(): string | null {
+  const u = currentUser();
+  return u ? saveKeyFor(u) : null;
+}
 
 export const TRAVEL_COST_PER_KM = 9; // yakıt + masraf ₺/km
 export const TRANSPORT_COST_PER_KM = 14; // çekici/nakliye ₺/km
@@ -713,7 +719,9 @@ function reducer(state: GameState, action: Action): GameState {
 
 function loadSave(): GameState | null {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
+    const key = activeSaveKey();
+    if (!key) return null;
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as GameState;
     if (parsed.version !== SAVE_VERSION || !parsed.started) return null;
@@ -744,14 +752,29 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, emptyState, () => loadSave() ?? emptyState);
 
   useEffect(() => {
+    const key = activeSaveKey();
+    const user = currentUser();
+    if (!key || !user) return;
     if (state.started) {
       try {
-        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+        localStorage.setItem(key, JSON.stringify(state));
       } catch {
         // depolama dolu olabilir, sessiz geç
       }
+      upsertProfile({
+        username: user,
+        galleryName: state.galleryName,
+        homeCity: state.homeCity,
+        totalProfit: state.stats.totalProfit,
+        carsSold: state.stats.carsSold,
+        reputation: state.reputation,
+        level: state.level,
+        day: state.day,
+        started: true,
+        updatedAt: Date.now(),
+      });
     } else {
-      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(key);
     }
   }, [state]);
 

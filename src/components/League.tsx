@@ -1,9 +1,97 @@
+import { useState } from "react";
 import { cityByPlate } from "../data/cities";
 import { playerRank } from "../game/rivals";
+import { getLeaderboard, currentUser } from "../game/auth";
+import { titleFor } from "../game/career";
 import { fmtMoney, useGame } from "../game/state";
+
+function PlayersLeague() {
+  const me = currentUser();
+  const rows = getLeaderboard();
+  const started = rows.filter((r) => r.started);
+  const myIndex = started.findIndex((r) => r.username === me);
+  const medal = (i: number) => (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}.`);
+
+  return (
+    <div>
+      <div className="card" style={{ marginBottom: 14 }}>
+        <div className="row between">
+          <div>
+            <h3 style={{ margin: 0 }}>👥 Oyuncular Ligi</h3>
+            <div className="sub" style={{ marginBottom: 0 }}>
+              Bu cihazda kayıtlı tüm galericiler toplam kâra göre sıralanır.
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>SIRANIZ</div>
+            <div
+              className={myIndex === 0 ? "rank-1" : ""}
+              style={{ fontSize: 30, fontWeight: 900 }}
+            >
+              {myIndex < 0 ? "—" : myIndex === 0 ? "🥇 1" : `#${myIndex + 1}`}
+              <span style={{ fontSize: 14, color: "var(--muted)", fontWeight: 600 }}>
+                {" "}
+                / {started.length || 1}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {started.length <= 1 ? (
+        <div className="card">
+          <p style={{ margin: 0, color: "var(--muted)" }}>
+            Henüz yarışacak başka oyuncu yok. Aynı tarayıcıda 🚪 Çıkış yapıp yeni bir hesap
+            açarak (ör. arkadaşın) bu ligi doldurabilirsiniz — herkesin ilerlemesi ayrı kaydedilir.
+          </p>
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+          <table className="city-table">
+            <thead>
+              <tr>
+                <th>Sıra</th>
+                <th>Oyuncu</th>
+                <th>Galeri</th>
+                <th>Merkez</th>
+                <th>Seviye</th>
+                <th>Satış</th>
+                <th>Toplam Kâr</th>
+                <th>İtibar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {started.map((r, i) => (
+                <tr key={r.username} className={r.username === me ? "league-row-me" : ""}>
+                  <td className={i === 0 ? "rank-1" : ""} style={{ whiteSpace: "nowrap" }}>
+                    {medal(i)}
+                  </td>
+                  <td>
+                    {r.username === me ? "⭐ " : "👤 "}
+                    {r.username}
+                    {r.username === me ? " (SİZ)" : ""}
+                  </td>
+                  <td>{r.galleryName}</td>
+                  <td>{cityByPlate(r.homeCity).name}</td>
+                  <td title={titleFor(r.level)}>Lv {r.level}</td>
+                  <td>{r.carsSold} araç</td>
+                  <td style={{ color: r.totalProfit >= 0 ? "var(--green)" : "var(--red)", fontWeight: 700 }}>
+                    {fmtMoney(r.totalProfit)}
+                  </td>
+                  <td>{r.reputation}/100</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function League() {
   const { state } = useGame();
+  const [view, setView] = useState<"players" | "rivals">("players");
 
   const rows = [
     {
@@ -35,6 +123,27 @@ export function League() {
 
   return (
     <div>
+      <div className="row" style={{ gap: 8, marginBottom: 14 }}>
+        <button
+          className={view === "players" ? "primary" : ""}
+          style={{ flex: 1 }}
+          onClick={() => setView("players")}
+        >
+          👥 Oyuncular Ligi
+        </button>
+        <button
+          className={view === "rivals" ? "primary" : ""}
+          style={{ flex: 1 }}
+          onClick={() => setView("rivals")}
+        >
+          🤖 Yapay Zekâ Rakipler
+        </button>
+      </div>
+
+      {view === "players" && <PlayersLeague />}
+
+      {view === "rivals" && (
+        <>
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row between">
           <div>
@@ -104,6 +213,8 @@ export function League() {
         usta satıcıdır (günlük kârlarına bakın) — onları geçmek için ucuza alıp pahalıya satmak
         yetmez, hacim de gerekir.
       </p>
+        </>
+      )}
     </div>
   );
 }

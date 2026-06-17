@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useGame } from "./game/state";
+import { currentUser } from "./game/auth";
+import { Login } from "./components/Login";
 import { NewGame } from "./components/NewGame";
 import { TopBar } from "./components/TopBar";
 import { Showroom } from "./components/Showroom";
@@ -18,6 +20,15 @@ type Tab = "galeri" | "pazar" | "atolye" | "musteri" | "ofis" | "lig" | "kariyer
 export default function App() {
   const { state } = useGame();
   const [tab, setTab] = useState<Tab>("galeri");
+  const user = currentUser();
+
+  if (!user) {
+    return (
+      <div className="app">
+        <Login onAuthed={() => window.location.reload()} />
+      </div>
+    );
+  }
 
   if (!state.started) {
     return (
