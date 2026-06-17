@@ -381,21 +381,21 @@ function reducer(state: GameState, action: Action): GameState {
         kind: "gelir",
       });
 
-      // İtibar etkisi — dürüst satış itibar kazandırır, gizli arıza nadiren ve ölçülü zarar verir
-      if (o.car.hiddenFaults.length > 0 && chance(0.35)) {
-        const hit = 2 + o.car.hiddenFaults.length;
+      // İtibar etkisi — dürüst satış bol itibar kazandırır, gizli arıza nadiren ve hafif zarar verir
+      if (o.car.hiddenFaults.length > 0 && chance(0.25)) {
+        const hit = 1 + o.car.hiddenFaults.length;
         s.reputation = Math.max(0, s.reputation - hit);
         log(s, {
           text: `😠 ${c.name} eve varamadan araç arıza yaptı! Sosyal medyada sizi kötüledi. İtibar -${hit}`,
           kind: "uyari",
         });
       } else if (o.car.knownFaults.length === 0 && o.car.hiddenFaults.length === 0 && profit > 0) {
-        s.reputation = Math.min(100, s.reputation + 3);
-        log(s, { text: "🌟 Sorunsuz satış! İtibar +3", kind: "info" });
+        s.reputation = Math.min(100, s.reputation + 6);
+        log(s, { text: "🌟 Sorunsuz satış! İtibar +6", kind: "info" });
       } else if (profit > 0) {
         // Açıkça bilinen kusurlarına rağmen sorunsuz tamamlanan satış da güven kazandırır
-        s.reputation = Math.min(100, s.reputation + 1);
-        log(s, { text: "🙂 Memnun müşteri! İtibar +1", kind: "info" });
+        s.reputation = Math.min(100, s.reputation + 3);
+        log(s, { text: "🙂 Memnun müşteri! İtibar +3", kind: "info" });
       }
       addXp(s, 60 + Math.max(0, Math.floor(profit / 10000)));
       checkMilestones(s);
