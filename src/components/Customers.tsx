@@ -11,6 +11,7 @@ import {
 import { Modal } from "./ui";
 import { chance } from "../game/rng";
 import { sfx } from "../game/sound";
+import { CustomersScene } from "./scenes/TabScenes";
 
 export function Customers() {
   const { state } = useGame();
@@ -19,6 +20,9 @@ export function Customers() {
 
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <CustomersScene />
+      </div>
       {state.customers.length === 0 && (
         <div className="empty">
           Şu an galeride müşteri yok. Günü bitirince yeni müşteriler gelir — vitrininiz ne kadar

@@ -1,6 +1,7 @@
 import type { GameState, LogEntry, MarketModifier, Segment } from "../types";
 import { SEGMENT_LABELS, PART_KEYS } from "../types";
 import { makeFault } from "./faults";
+import { washDailyCleanBonus } from "./facilities";
 import { chance, pick, rand, randInt, roundMoney } from "./rng";
 
 /** Gün sonunda rastgele olayları uygular. State'i yerinde değiştirir (taze kopya üzerinde çağrılır). */
@@ -57,14 +58,13 @@ export function applyDailyEvents(s: GameState): void {
     }
   }
 
-  // 3) Araçlar bekledikçe tozlanır (detaycı varsa tam tersi: her gün parlatır)
+  // 3) Araçlar bekledikçe tozlanır (detaycı ve oto yıkama tersine çevirir)
   const hasDetayci = s.staff.some((st) => st.role === "detayci");
+  const washBonus = washDailyCleanBonus(s);
   for (const o of s.inventory) {
-    if (hasDetayci) {
-      o.car.cleanliness = Math.min(100, o.car.cleanliness + 5);
-    } else {
-      o.car.cleanliness = Math.max(10, o.car.cleanliness - randInt(1, 4));
-    }
+    let delta = hasDetayci ? 5 : -randInt(1, 4);
+    delta += washBonus;
+    o.car.cleanliness = Math.max(10, Math.min(100, o.car.cleanliness + delta));
   }
 
   // 4) Küçük renkli olaylar

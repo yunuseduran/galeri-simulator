@@ -10,6 +10,7 @@ import {
   useGame,
 } from "../game/state";
 import { sfx } from "../game/sound";
+import { travelCostMultiplier } from "../game/facilities";
 import { CarSpecs } from "./CarSpecs";
 import { Modal } from "./ui";
 
@@ -37,7 +38,7 @@ export function AuctionBanner() {
 
   const here = state.currentCity === a.cityPlate;
   const km = roadDistance(state.currentCity, a.cityPlate);
-  const cost = travelCostFor(km, state.level);
+  const cost = travelCostFor(km, state.level, travelCostMultiplier(state));
 
   return (
     <>

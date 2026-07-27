@@ -8,6 +8,7 @@ import { Showroom } from "./components/Showroom";
 import { Market } from "./components/Market";
 import { Workshop } from "./components/Workshop";
 import { Customers } from "./components/Customers";
+import { Facilities } from "./components/Facilities";
 import { Office } from "./components/Office";
 import { League } from "./components/League";
 import { Career } from "./components/Career";
@@ -15,7 +16,7 @@ import { Ledger } from "./components/Ledger";
 import { FxLayer } from "./components/Fx";
 import { playerRank } from "./game/rivals";
 
-type Tab = "galeri" | "pazar" | "atolye" | "musteri" | "ofis" | "lig" | "kariyer" | "defter";
+type Tab = "galeri" | "pazar" | "tesis" | "atolye" | "musteri" | "ofis" | "lig" | "kariyer" | "defter";
 
 export default function App() {
   const { state } = useGame();
@@ -53,6 +54,9 @@ export default function App() {
         <button className={tab === "pazar" ? "active" : ""} onClick={() => setTab("pazar")}>
           🛒 İlanlar
         </button>
+        <button className={tab === "tesis" ? "active" : ""} onClick={() => setTab("tesis")}>
+          🏗️ Tesis
+        </button>
         <button className={tab === "atolye" ? "active" : ""} onClick={() => setTab("atolye")}>
           🔧 Atölye
           {jobCount > 0 && <span className="badge" style={{ background: "var(--accent)" }}>{jobCount}</span>}
@@ -86,6 +90,7 @@ export default function App() {
       </div>
 
       {tab === "galeri" && <Showroom />}
+      {tab === "tesis" && <Facilities />}
       {tab === "pazar" && <Market />}
       {tab === "atolye" && <Workshop />}
       {tab === "musteri" && <Customers />}

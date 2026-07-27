@@ -3,6 +3,7 @@ import { CITIES, cityByPlate, roadDistance } from "../data/cities";
 import { fmtMoney, travelCostFor, travelHours, useGame } from "../game/state";
 import { currentUser, logout } from "../game/auth";
 import { titleFor, xpNeeded } from "../game/career";
+import { travelCostMultiplier } from "../game/facilities";
 import { isMuted, setMuted, sfx } from "../game/sound";
 import { Modal } from "./ui";
 import { TurkeyMap } from "./TurkeyMap";
@@ -194,7 +195,7 @@ export function TopBar() {
           {selCity !== null && selCity !== state.currentCity && (() => {
             const c = cityByPlate(selCity);
             const km = roadDistance(state.currentCity, selCity);
-            const cost = travelCostFor(km, state.level);
+            const cost = travelCostFor(km, state.level, travelCostMultiplier(state));
             const count = state.listings.filter((l) => l.cityPlate === selCity).length;
             return (
               <div className="card" style={{ background: "var(--bg2)", margin: "10px 0" }}>
@@ -232,7 +233,7 @@ export function TopBar() {
             <tbody>
               {CITIES.map((c) => {
                 const km = roadDistance(state.currentCity, c.plate);
-                const cost = travelCostFor(km, state.level);
+                const cost = travelCostFor(km, state.level, travelCostMultiplier(state));
                 const count = state.listings.filter((l) => l.cityPlate === c.plate).length;
                 return { c, km, cost, count };
               })

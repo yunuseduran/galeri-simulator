@@ -19,7 +19,9 @@ import { CarSpecs } from "./CarSpecs";
 import { Modal } from "./ui";
 import { TestDrive } from "./TestDrive";
 import { sfx } from "../game/sound";
+import { travelCostMultiplier } from "../game/facilities";
 import { AuctionBanner } from "./Auction";
+import { MarketScene } from "./scenes/TabScenes";
 
 const MOOD_LABELS = { acil: "🔥 Acil satılık", normal: "Satılık", sabirli: "💎 Sahibi acelesiz" };
 
@@ -42,6 +44,9 @@ export function Market() {
 
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <MarketScene />
+      </div>
       <AuctionBanner />
       <div className="row between" style={{ marginBottom: 12 }}>
         <div className="row">
@@ -119,7 +124,7 @@ function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => v
   const city = cityByPlate(listing.cityPlate);
   const here = state.currentCity === listing.cityPlate;
   const km = roadDistance(state.currentCity, listing.cityPlate);
-  const travelCost = travelCostFor(km, state.level);
+  const travelCost = travelCostFor(km, state.level, travelCostMultiplier(state));
   const expCost = expertiseCostFor(state.level);
   const transportKm = roadDistance(listing.cityPlate, state.homeCity);
   const transportCost = Math.round((transportKm * TRANSPORT_COST_PER_KM) / 100) * 100;

@@ -1,4 +1,5 @@
 import { fmtMoney, useGame } from "../game/state";
+import { LedgerScene } from "./scenes/TabScenes";
 
 export function Ledger() {
   const { state, dispatch } = useGame();
@@ -6,6 +7,9 @@ export function Ledger() {
 
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <LedgerScene />
+      </div>
       <div className="grid" style={{ marginBottom: 16, gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
         <div className="card">
           <div className="sub">Alınan araç</div>

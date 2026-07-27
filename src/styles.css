@@ -25,6 +25,9 @@ body {
   color: var(--text);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   font-size: 15px;
+  /* Mobil: çift dokunuş yakınlaştırmasını ve 300ms tık gecikmesini kapat */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 #root {
@@ -35,6 +38,10 @@ body {
   max-width: 1180px;
   margin: 0 auto;
   padding: 12px 16px 80px;
+  /* Çentikli ekranlar için güvenli alan */
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(80px, env(safe-area-inset-bottom));
 }
 
 button {
@@ -47,6 +54,9 @@ button {
   padding: 8px 14px;
   font-size: 14px;
   transition: all 0.15s;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 button:hover:not(:disabled) {
   border-color: var(--accent);
@@ -713,6 +723,131 @@ select:focus {
 .rank-1 {
   color: #ffd700;
   font-weight: 900;
+}
+
+/* ---- Dokunmatik cihazlar: büyük dokunma hedefleri ---- */
+@media (pointer: coarse) {
+  button {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+  button.small {
+    min-height: 38px;
+    padding: 7px 12px;
+  }
+  input,
+  select {
+    min-height: 44px;
+    font-size: 16px; /* iOS otomatik yakınlaştırmayı önler */
+  }
+  .grid > .card:hover {
+    transform: none; /* dokunmatikte hover kaydırması titreme yapar */
+  }
+}
+
+/* ---- Dar ekran (telefon) düzeni ---- */
+@media (max-width: 640px) {
+  .app {
+    padding-top: 8px;
+  }
+  .topbar {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .topbar .brand {
+    font-size: 15px;
+    width: 100%;
+  }
+  .stat {
+    min-width: 0;
+    flex: 1 1 30%;
+  }
+  .stat .value {
+    font-size: 13px;
+  }
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .modal {
+    padding: 12px;
+    max-height: 96vh;
+    border-radius: 10px;
+  }
+  .modal-overlay {
+    padding: 6px;
+  }
+  table.city-table {
+    font-size: 12px;
+  }
+  table.city-table td,
+  table.city-table th {
+    padding: 5px 5px;
+  }
+  .toast-stack {
+    left: 10px;
+    right: 10px;
+    max-width: none;
+  }
+  .day-splash .big {
+    font-size: 32px;
+  }
+  .diff-cards {
+    grid-template-columns: 1fr;
+  }
+  .testdrive-wrap {
+    gap: 8px;
+  }
+  .td-panel {
+    width: 100%;
+  }
+  .td-hints {
+    min-height: 70px;
+    max-height: 120px;
+  }
+}
+
+/* ---- Test sürüşü dokunmatik pedalları ---- */
+.td-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 8px;
+  touch-action: none;
+}
+.td-controls .pedal-group {
+  display: flex;
+  gap: 10px;
+}
+.td-controls button {
+  min-width: 64px;
+  min-height: 58px;
+  font-size: 17px;
+  font-weight: 700;
+  border-radius: 12px;
+  touch-action: none;
+}
+.td-controls button:active {
+  background: var(--accent);
+  color: #1a1205;
+}
+.testdrive-canvas {
+  max-width: 100%;
+  height: auto;
 }
 
 .section-title {

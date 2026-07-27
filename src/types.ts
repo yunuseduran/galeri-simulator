@@ -301,6 +301,8 @@ export interface GameState {
   staff: Staff[];
   auction: Auction | null;
   rivals: Rival[];
+  /** Tesis/dükkan seviyeleri (0 = henüz yok). Anahtarlar: game/facilities.ts */
+  facilities: Record<string, number>;
   log: LogEntry[];
   stats: {
     carsBought: number;

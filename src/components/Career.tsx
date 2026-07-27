@@ -9,6 +9,7 @@ import {
   xpNeeded,
 } from "../game/career";
 import { fmtMoney, useGame } from "../game/state";
+import { CareerScene } from "./scenes/TabScenes";
 
 export function Career() {
   const { state } = useGame();
@@ -17,6 +18,9 @@ export function Career() {
 
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <CareerScene />
+      </div>
       {/* Seviye kartı */}
       <div className="card" style={{ marginBottom: 14 }}>
         <div className="row between" style={{ alignItems: "flex-start" }}>

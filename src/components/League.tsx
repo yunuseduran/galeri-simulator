@@ -4,6 +4,7 @@ import { playerRank } from "../game/rivals";
 import { getLeaderboard, currentUser } from "../game/auth";
 import { titleFor } from "../game/career";
 import { fmtMoney, useGame } from "../game/state";
+import { LeagueScene } from "./scenes/TabScenes";
 
 function PlayersLeague() {
   const me = currentUser();
@@ -123,6 +124,9 @@ export function League() {
 
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <LeagueScene />
+      </div>
       <div className="row" style={{ gap: 8, marginBottom: 14 }}>
         <button
           className={view === "players" ? "primary" : ""}

@@ -3,6 +3,7 @@ import { CUSTOMER_EMOJIS } from "../data/names";
 import { randomPersonName } from "./carFactory";
 import { perceivedValue } from "./valuation";
 import { chance, pick, rand, randInt, roundMoney, uid } from "./rng";
+import { cafeGenerosityBonus, cafePatienceBonus } from "./facilities";
 
 export function generateCustomer(state: GameState, owned: OwnedCar): Customer {
   const styles: CustomerStyle[] = ["normal", "normal", "siki", "siki", "acele", "titiz"];
@@ -29,6 +30,7 @@ export function generateCustomer(state: GameState, owned: OwnedCar): Customer {
   maxMult += repBonus * 0.1;
   if (hasDanisman) maxMult += 0.04; // danışman müşteriyi tatlı dille ikna eder
   if (state.level >= 8) maxMult += 0.03; // kariyer ayrıcalığı: ikna kabiliyeti
+  maxMult += cafeGenerosityBonus(state); // kafeterya: çay içen müşteri cömert olur
 
   const maxPay = roundMoney(pv * maxMult, 1000);
   const openingOffer = roundMoney(maxPay * rand(0.78, 0.9), 1000);
@@ -40,7 +42,7 @@ export function generateCustomer(state: GameState, owned: OwnedCar): Customer {
     carId: owned.car.id,
     style,
     maxPay,
-    patience: style === "acele" ? 3 : style === "siki" ? 5 : 4,
+    patience: (style === "acele" ? 3 : style === "siki" ? 5 : 4) + cafePatienceBonus(state),
     openingOffer,
     leavesDay: state.day + (style === "acele" ? 1 : randInt(1, 3)),
     lastOffer: null,

@@ -20,6 +20,16 @@ import { applyDailyEvents, weeklyExpense } from "./events";
 import { canTakeLoan, makeLoan, type LoanOffer } from "./bank";
 import { AUCTION_PERIOD, generateAuction } from "./auction";
 import { generateRivals, playerRank, updateRivals } from "./rivals";
+import {
+  dailyFacilityIncome,
+  facilityDef,
+  facilityLevel,
+  totalSlots,
+  travelCostMultiplier,
+  workshopCostMultiplier,
+  workshopDayBonus,
+  type FacilityKey,
+} from "./facilities";
 import { addXp, checkMilestones } from "./career";
 import { carValue } from "./valuation";
 import { chance, randInt, roundMoney, uid } from "./rng";
@@ -39,8 +49,8 @@ export const EXPERTISE_COST = 4000;
 export const MAX_LISTINGS = 42;
 
 /** Yol masrafı — 5. seviye ayrıcalığıyla %15 iner */
-export function travelCostFor(km: number, level: number): number {
-  const base = km * TRAVEL_COST_PER_KM * (level >= 5 ? 0.85 : 1);
+export function travelCostFor(km: number, level: number, facilityMult = 1): number {
+  const base = km * TRAVEL_COST_PER_KM * (level >= 5 ? 0.85 : 1) * facilityMult;
   return Math.round(base / 100) * 100;
 }
 
@@ -68,13 +78,13 @@ export type Action =
   | { type: "CUSTOMER_DEAL"; customerId: string; price: number }
   | { type: "CUSTOMER_GONE"; customerId: string; angry?: boolean }
   | { type: "WHOLESALE"; carId: string }
-  | { type: "UPGRADE_SLOTS" }
   | { type: "TAKE_LOAN"; offer: LoanOffer }
   | { type: "PAYOFF_LOAN"; loanId: string }
   | { type: "HIRE_STAFF"; role: StaffRole }
   | { type: "FIRE_STAFF"; staffId: string }
   | { type: "AUCTION_BUY"; carId: string; price: number }
   | { type: "AUCTION_PASS"; carId: string }
+  | { type: "BUILD_FACILITY"; facility: FacilityKey }
   | { type: "END_DAY" };
 
 function freshListings(day: number, count: number): Listing[] {
@@ -113,6 +123,7 @@ export function newGameState(
     staff: [],
     auction: null,
     rivals: generateRivals(homeCity),
+    facilities: { showroom: 1 },
     log: [
       {
         day: 1,
@@ -161,6 +172,7 @@ const emptyState: GameState = {
   staff: [],
   auction: null,
   rivals: [],
+  facilities: { showroom: 1 },
   log: [],
   stats: {
     carsBought: 0,
@@ -202,7 +214,7 @@ function reducer(state: GameState, action: Action): GameState {
       if (action.plate === state.currentCity) return state;
       const s = clone(state);
       const km = roadDistance(s.currentCity, action.plate);
-      const cost = travelCostFor(km, s.level);
+      const cost = travelCostFor(km, s.level, travelCostMultiplier(s));
       if (s.money < cost) return state;
       const h = travelHours(km);
       s.money -= cost;
@@ -437,20 +449,26 @@ function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
-    case "UPGRADE_SLOTS": {
+    case "BUILD_FACILITY": {
       const s = clone(state);
-      const next =
-        s.gallerySlots === 4 ? 6 : s.gallerySlots === 6 ? 8 : s.gallerySlots === 8 ? 12 : 0;
-      if (!next) return state;
-      const cost = s.gallerySlots === 4 ? 300000 : s.gallerySlots === 6 ? 600000 : 1200000;
-      if (s.money < cost) return state;
-      s.money -= cost;
-      s.gallerySlots = next;
+      const def = facilityDef(action.facility);
+      const cur = facilityLevel(s, action.facility);
+      if (cur >= def.levels.length) return state;
+      const lvl = def.levels[cur]; // bir sonraki seviye
+      if (s.money < lvl.cost) return state;
+      s.money -= lvl.cost;
+      s.facilities[action.facility] = cur + 1;
+      s.gallerySlots = totalSlots(s);
       log(s, {
-        text: `🏗️ Galeri büyütüldü! Yeni kapasite: ${next} araç.`,
-        amount: -cost,
+        text:
+          cur === 0
+            ? `🏗️ ${def.emoji} ${def.name} inşa edildi! ${lvl.effect}.`
+            : `🏗️ ${def.emoji} ${def.name} Seviye ${cur + 1} oldu! ${lvl.effect}.`,
+        amount: -lvl.cost,
         kind: "gider",
       });
+      addXp(s, 50 + cur * 25);
+      checkMilestones(s);
       return s;
     }
 
@@ -585,6 +603,17 @@ function reducer(state: GameState, action: Action): GameState {
             kind: "uyari",
           });
         }
+      }
+
+      // Dükkan gelirleri (yıkama, parça, kafeterya, pompa...)
+      const shopIncome = dailyFacilityIncome(s);
+      if (shopIncome > 0) {
+        s.money += shopIncome;
+        log(s, {
+          text: "🏪 Tesisteki dükkanlar günlük ciroyu kasaya devretti.",
+          amount: shopIncome,
+          kind: "gelir",
+        });
       }
 
       // Kredi taksitleri
@@ -741,6 +770,11 @@ function loadSave(): GameState | null {
     parsed.stats.repairsDone = parsed.stats.repairsDone ?? 0;
     parsed.stats.kmTraveled = parsed.stats.kmTraveled ?? 0;
     parsed.stats.citiesVisited = parsed.stats.citiesVisited ?? [parsed.homeCity];
+    if (!parsed.facilities) {
+      // Eski kayıt: mevcut kapasiteden vitrin seviyesini türet; tamirhane zaten kullanılıyordu
+      const showroom = parsed.gallerySlots >= 12 ? 4 : parsed.gallerySlots >= 8 ? 3 : parsed.gallerySlots >= 6 ? 2 : 1;
+      parsed.facilities = { showroom, atolye: 1 };
+    }
     return parsed;
   } catch {
     return null;
@@ -809,6 +843,19 @@ export function applyUsta(
   if (level >= 10) cost *= 0.9;
   if (cost === job.cost && daysLeft === job.daysLeft) return job;
   return { ...job, cost: roundMoney(cost, 100), daysLeft };
+}
+
+/** Usta + kariyer + tesis (tamirhane/yedek parça) etkilerinin tamamını uygular */
+export function adjustJob(
+  s: GameState,
+  job: Omit<WorkshopJob, "id" | "carId">
+): Omit<WorkshopJob, "id" | "carId"> {
+  const hasUsta = s.staff.some((st) => st.role === "usta");
+  const base = applyUsta(job, hasUsta, s.level);
+  const cost = roundMoney(base.cost * workshopCostMultiplier(s), 100);
+  const daysLeft = Math.max(1, base.daysLeft - workshopDayBonus(s));
+  if (cost === base.cost && daysLeft === base.daysLeft) return base;
+  return { ...base, cost, daysLeft };
 }
 
 export function repairJobFor(car: Car, partKey: PartKey): Omit<WorkshopJob, "id" | "carId"> {

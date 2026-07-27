@@ -2,12 +2,16 @@ import { STAFF_DEFS, type StaffRole } from "../types";
 import { LOAN_OFFERS, MAX_ACTIVE_LOANS, canTakeLoan } from "../game/bank";
 import { fmtMoney, useGame } from "../game/state";
 import { sfx } from "../game/sound";
+import { OfficeScene } from "./scenes/TabScenes";
 
 export function Office() {
   const { state, dispatch } = useGame();
 
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <OfficeScene />
+      </div>
       <div className="section-title">🏦 Banka</div>
       {state.loans.length > 0 && (
         <div className="grid" style={{ marginBottom: 12 }}>

@@ -106,6 +106,7 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: "mezat", emoji: "🔨", name: "Mezat Kurdu", unit: "mezat", thresholds: [1, 3, 10, 25, 60], metric: (s) => s.stats.auctionsWon },
   { id: "tamir", emoji: "🔧", name: "Usta Eller", unit: "iş", thresholds: [5, 15, 40, 100, 250], metric: (s) => s.stats.repairsDone },
   { id: "yol", emoji: "🛣️", name: "Yol Canavarı", unit: "km", thresholds: [1000, 5000, 20000, 50000, 120000], metric: (s) => s.stats.kmTraveled },
+  { id: "tesis", emoji: "🏗️", name: "Tesis Kralı", unit: "seviye", thresholds: [2, 5, 9, 14, 19], finite: true, metric: (s) => Object.values(s.facilities ?? {}).reduce((a, b) => a + b, 0) },
 ];
 
 /** Verilen kademe için eşik; finite başarımlarda eşikler bitince null */

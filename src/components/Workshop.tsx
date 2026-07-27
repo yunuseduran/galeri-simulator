@@ -1,6 +1,6 @@
 import { COSMETIC_LABELS, PART_KEYS, PART_LABELS, STAFF_DEFS, type Cosmetics } from "../types";
 import {
-  applyUsta,
+  adjustJob,
   cleanJob,
   cosmeticJob,
   faultJobFor,
@@ -8,6 +8,8 @@ import {
   repairJobFor,
   useGame,
 } from "../game/state";
+import { facilityLevel } from "../game/facilities";
+import { WorkshopScene } from "./scenes/TabScenes";
 import { PartBar } from "./ui";
 import { sfx } from "../game/sound";
 
@@ -16,9 +18,32 @@ export function Workshop() {
   const cars = state.inventory.filter((o) => !o.inTransitUntilDay || o.inTransitUntilDay <= state.day);
   const hasUsta = state.staff.some((st) => st.role === "usta");
   const lvl = state.level;
+  const atolyeLvl = facilityLevel(state, "atolye");
+  const parcaLvl = facilityLevel(state, "parca");
 
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <WorkshopScene />
+      </div>
+      {atolyeLvl === 0 && (
+        <div className="card" style={{ marginBottom: 12, borderColor: "var(--red)" }}>
+          ⚠️ Kendi tamirhaneniz yok — işler dış sanayiye <strong>%30 zamlı</strong> yaptırılıyor.
+          🏗️ Tesis sekmesinden <strong>Tamirhane</strong> inşa edin!
+        </div>
+      )}
+      {atolyeLvl >= 2 && (
+        <div className="card" style={{ marginBottom: 12, borderColor: "var(--green)" }}>
+          🔧 Tamirhane Sv.{atolyeLvl}: işler %{atolyeLvl >= 3 ? 20 : 10} indirimli
+          {atolyeLvl >= 3 ? " ve 1 gün daha hızlı" : ""}
+          {parcaLvl > 0 ? ` · Yedek parça dükkanı: ek %${parcaLvl * 5} parça indirimi` : ""}.
+        </div>
+      )}
+      {atolyeLvl < 2 && parcaLvl > 0 && (
+        <div className="card" style={{ marginBottom: 12, borderColor: "var(--green)" }}>
+          🛞 Yedek parça dükkanı: tamirlerde %{parcaLvl * 5} parça indirimi.
+        </div>
+      )}
       {lvl >= 10 && (
         <div className="card" style={{ marginBottom: 12, borderColor: "var(--blue)" }}>
           🔧 Seviye 10 ayrıcalığı: tüm atölye işlerinde <strong>%10 sanayi indirimi</strong> uygulanıyor.
@@ -68,7 +93,7 @@ export function Workshop() {
                   Parça durumu — yıpranmış parçayı yenilemek aracın değerini artırır:
                 </div>
                 {PART_KEYS.map((k) => {
-                  const job = applyUsta(repairJobFor(car, k), hasUsta, lvl);
+                  const job = adjustJob(state, repairJobFor(car, k));
                   const queued = state.jobs.some(
                     (j) => j.carId === car.id && j.partKey === k && !j.faultId
                   );
@@ -96,7 +121,7 @@ export function Workshop() {
                     <strong style={{ color: "var(--red)", fontSize: 13.5 }}>Arızalar:</strong>
                     {car.knownFaults.map((f) => {
                       const rawJob = faultJobFor(car, f.id);
-                      const job = rawJob ? applyUsta(rawJob, hasUsta, lvl) : null;
+                      const job = rawJob ? adjustJob(state, rawJob) : null;
                       const queued = state.jobs.some((j) => j.faultId === f.id);
                       return (
                         <div className="row between" key={f.id} style={{ marginTop: 4 }}>
@@ -130,22 +155,22 @@ export function Workshop() {
                     disabled={
                       car.cleanliness >= 95 ||
                       state.jobs.some((j) => j.carId === car.id && j.type === "clean") ||
-                      state.money < applyUsta(cleanJob(car), hasUsta, lvl).cost
+                      state.money < adjustJob(state, cleanJob(car)).cost
                     }
                     onClick={() => {
                       sfx.wrench();
                       dispatch({
                         type: "START_JOB",
                         carId: car.id,
-                        job: applyUsta(cleanJob(car), hasUsta, lvl),
+                        job: adjustJob(state, cleanJob(car)),
                       });
                     }}
                   >
-                    {fmtMoney(applyUsta(cleanJob(car), hasUsta, lvl).cost)}
+                    {fmtMoney(adjustJob(state, cleanJob(car)).cost)}
                   </button>
                 </div>
                 {(Object.keys(COSMETIC_LABELS) as (keyof Cosmetics)[]).map((k) => {
-                  const job = applyUsta(cosmeticJob(car, k), hasUsta, lvl);
+                  const job = adjustJob(state, cosmeticJob(car, k));
                   const queued = state.jobs.some(
                     (j) => j.carId === car.id && j.cosmeticKey === k
                   );

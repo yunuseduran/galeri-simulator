@@ -4,6 +4,7 @@ import { fmtMoney, useGame } from "../game/state";
 import { carValue, perceivedValue } from "../game/valuation";
 import { CarSpecs } from "./CarSpecs";
 import { Modal } from "./ui";
+import { ShowroomScene } from "./scenes/TabScenes";
 
 export function Showroom() {
   const { state, dispatch } = useGame();
@@ -13,23 +14,18 @@ export function Showroom() {
   const detail = detailId ? state.inventory.find((o) => o.car.id === detailId) : null;
   const wholesale = wholesaleId ? state.inventory.find((o) => o.car.id === wholesaleId) : null;
 
-  const upgradeCost =
-    state.gallerySlots === 4 ? 300000 : state.gallerySlots === 6 ? 600000 : state.gallerySlots === 8 ? 1200000 : null;
-
   return (
     <div>
+      <div className="card" style={{ padding: 8, marginBottom: 12 }}>
+        <ShowroomScene />
+      </div>
       <div className="row between" style={{ marginBottom: 12 }}>
         <strong>
           Vitrin: {state.inventory.length}/{state.gallerySlots} araç
         </strong>
-        {upgradeCost && (
-          <button
-            disabled={state.money < upgradeCost}
-            onClick={() => dispatch({ type: "UPGRADE_SLOTS" })}
-          >
-            🏗️ Galeriyi Büyüt ({fmtMoney(upgradeCost)})
-          </button>
-        )}
+        <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+          Kapasite artırmak için: 🏗️ Tesis sekmesi → Vitrin / Ek Otopark
+        </span>
       </div>
 
       {state.inventory.length === 0 && (

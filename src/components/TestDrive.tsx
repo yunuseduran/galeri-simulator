@@ -420,21 +420,29 @@ export function TestDrive({
   const touchBtn = (key: keyof typeof keys.current) => ({
     onPointerDown: (e: React.PointerEvent) => {
       e.preventDefault();
+      (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
       keys.current[key] = true;
     },
     onPointerUp: () => (keys.current[key] = false),
+    onPointerCancel: () => (keys.current[key] = false),
     onPointerLeave: () => (keys.current[key] = false),
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
   });
 
   return (
     <div className="testdrive-wrap">
-      <div>
+      <div style={{ flex: "1 1 300px", maxWidth: W }}>
         <canvas ref={canvasRef} width={W} height={H} className="testdrive-canvas" />
-        <div className="row" style={{ justifyContent: "center", marginTop: 8 }}>
-          <button {...touchBtn("left")}>⬅️</button>
-          <button {...touchBtn("up")}>Gaz ⬆️</button>
-          <button {...touchBtn("down")}>Fren ⬇️</button>
-          <button {...touchBtn("right")}>➡️</button>
+        {/* İki başparmak düzeni: solda direksiyon, sağda pedallar */}
+        <div className="td-controls">
+          <div className="pedal-group">
+            <button {...touchBtn("left")} aria-label="Sola dön">⬅️</button>
+            <button {...touchBtn("right")} aria-label="Sağa dön">➡️</button>
+          </div>
+          <div className="pedal-group">
+            <button {...touchBtn("down")} aria-label="Fren">🛑 Fren</button>
+            <button {...touchBtn("up")} aria-label="Gaz">⛽ Gaz</button>
+          </div>
         </div>
       </div>
       <div className="td-panel">
