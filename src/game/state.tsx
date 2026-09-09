@@ -13,6 +13,9 @@ import type {
   WorkshopJob,
 } from "../types";
 import { COSMETIC_LABELS, PART_LABELS, STAFF_DEFS } from "../types";
+
+// Kaza hasarının yansıyabileceği parçalar (kendin sürerek getirme modu)
+const PART_KEYS_FOR_DAMAGE: PartKey[] = ["fren", "suspansiyon", "lastik", "motor"];
 import { cityByPlate, roadDistance } from "../data/cities";
 import { generateListing, randomPersonName } from "./carFactory";
 import { dailyCustomers } from "./customers";
@@ -72,7 +75,14 @@ export type Action =
   | { type: "EXPERTISE"; listingId: string }
   | { type: "TESTDRIVE_DONE"; listingId: string; foundFaultIds: string[]; crashed: boolean }
   | { type: "SELLER_WALKAWAY"; listingId: string }
-  | { type: "BUY"; listingId: string; price: number }
+  | {
+      type: "BUY";
+      listingId: string;
+      price: number;
+      /** "sur": aracı kendin sürerek getir (nakliye bedava, yol riski senin) */
+      deliver?: "nakliye" | "sur";
+      drive?: { crashed: boolean; brokeDown: boolean; foundFaultIds: string[] };
+    }
   | { type: "SET_ASKING"; carId: string; price: number }
   | { type: "START_JOB"; carId: string; job: Omit<WorkshopJob, "id" | "carId"> }
   | { type: "CUSTOMER_DEAL"; customerId: string; price: number }
@@ -202,6 +212,11 @@ export function travelHours(km: number): number {
   return Math.max(1, Math.round(km / 85));
 }
 
+/** Saf oyun mantığı — test betikleri için dışa açık */
+export function applyAction(state: GameState, action: Action): GameState {
+  return reducer(state, action);
+}
+
 function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case "NEW_GAME":
@@ -309,7 +324,8 @@ function reducer(state: GameState, action: Action): GameState {
       if (inGarageCount >= s.gallerySlots) return state;
 
       const km = roadDistance(l.cityPlate, s.homeCity);
-      const transport = roundMoney(km * TRANSPORT_COST_PER_KM, 100);
+      const selfDrive = action.deliver === "sur" && km > 0;
+      const transport = selfDrive ? 0 : roundMoney(km * TRANSPORT_COST_PER_KM, 100);
       const total = action.price + transport;
       if (s.money < total) return state;
 
@@ -321,11 +337,57 @@ function reducer(state: GameState, action: Action): GameState {
         boughtDay: s.day,
         totalSpent: total,
         askingPrice: roundMoney(carValue({ ...l.car, hiddenFaults: [] }, s.marketModifiers, s.day) * 1.08, 5000),
-        inTransitUntilDay: km > 250 ? s.day + 1 : undefined,
+        inTransitUntilDay: !selfDrive && km > 250 ? s.day + 1 : undefined,
       };
       s.inventory.push(owned);
       s.listings.splice(li, 1);
       s.stats.carsBought++;
+
+      if (selfDrive) {
+        // Aracı kendin sürdün: eve döndün, km yazdı, yolda öğrendiklerin bilinen arıza oldu
+        const car = owned.car;
+        s.currentCity = s.homeCity;
+        s.hour = Math.min(24, s.hour + travelHours(km));
+        s.stats.kmTraveled += km;
+        if (!s.stats.citiesVisited.includes(s.homeCity)) s.stats.citiesVisited.push(s.homeCity);
+        car.km += km;
+        const found = action.drive?.foundFaultIds ?? [];
+        const learned = car.hiddenFaults.filter((f) => found.includes(f.id));
+        car.hiddenFaults = car.hiddenFaults.filter((f) => !found.includes(f.id));
+        car.knownFaults = [...car.knownFaults, ...learned];
+        let extra = 0;
+        let note = "";
+        if (action.drive?.brokeDown) {
+          const tow = roundMoney(Math.max(3000, km * 12), 500);
+          extra += tow;
+          note += ` Yolda kaldınız, çekici: ${tow.toLocaleString("tr-TR")} ₺.`;
+          // yolda kalan araçta gizli arıza kendini belli eder
+          if (car.hiddenFaults.length > 0) {
+            const f = car.hiddenFaults.shift()!;
+            car.knownFaults.push(f);
+            note += ` Sorun: ${f.label}.`;
+          }
+        }
+        if (action.drive?.crashed) {
+          const damage = roundMoney(Math.max(5000, car.basePrice * 0.015), 500);
+          extra += damage;
+          const part = PART_KEYS_FOR_DAMAGE[Math.floor(Math.random() * PART_KEYS_FOR_DAMAGE.length)];
+          car.parts[part] = Math.max(10, car.parts[part] - 15);
+          car.paintedPanels += 1;
+          note += ` Kaza yaptınız: ${damage.toLocaleString("tr-TR")} ₺ hasar, ${PART_LABELS[part]} yıprandı.`;
+        }
+        s.money -= extra;
+        owned.totalSpent += extra;
+        log(s, {
+          text: `🏁 ${l.car.year} ${l.car.brand} ${l.car.model} satın alınıp ${km} km sürülerek galeriye getirildi (nakliye bedava).${note}${learned.length > 0 ? ` Yolda ${learned.length} arıza fark ettiniz.` : ""}`,
+          amount: -(total + extra),
+          kind: "gider",
+        });
+        addXp(s, 40 + 30 + Math.floor(km / 100));
+        checkMilestones(s);
+        return s;
+      }
+
       log(s, {
         text: `🤝 ${l.car.year} ${l.car.brand} ${l.car.model} satın alındı (${l.sellerName}).${transport > 0 ? ` Nakliye: ${transport.toLocaleString("tr-TR")} ₺.` : ""}${owned.inTransitUntilDay ? " Araç yarın galeride olacak." : ""}`,
         amount: -total,

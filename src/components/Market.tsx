@@ -16,7 +16,6 @@ import {
   type SellerNegoState,
 } from "../game/negotiation";
 import { CarSpecs } from "./CarSpecs";
-import { Modal } from "./ui";
 import { TestDrive3D } from "./TestDrive3D";
 import { sfx } from "../game/sound";
 import { travelCostMultiplier } from "../game/facilities";
@@ -25,103 +24,111 @@ import { MarketScene } from "./scenes/TabScenes";
 
 const MOOD_LABELS = { acil: "🔥 Acil satılık", normal: "Satılık", sabirli: "💎 Sahibi acelesiz" };
 
+/**
+ * İlan pazarı — mobil oyun tarzı: ilanlar yatay kaydırılan raflarda,
+ * karta dokununca ekran içinde kayarak detaya geçilir (modal yok).
+ */
 export function Market() {
   const { state } = useGame();
-  const [onlyHere, setOnlyHere] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const listings = useMemo(() => {
-    let ls = [...state.listings];
-    if (onlyHere) ls = ls.filter((l) => l.cityPlate === state.currentCity);
-    return ls.sort((a, b) => {
-      const da = roadDistance(state.currentCity, a.cityPlate);
-      const db = roadDistance(state.currentCity, b.cityPlate);
-      return da - db || a.askingPrice - b.askingPrice;
-    });
-  }, [state.listings, onlyHere, state.currentCity]);
+  const shelves = useMemo(() => {
+    const withKm = state.listings.map((l) => ({
+      l,
+      km: roadDistance(state.currentCity, l.cityPlate),
+    }));
+    const sortFn = (a: { km: number; l: Listing }, b: { km: number; l: Listing }) =>
+      a.km - b.km || a.l.askingPrice - b.l.askingPrice;
+    const here = withKm.filter((x) => x.km === 0).sort(sortFn);
+    const near = withKm.filter((x) => x.km > 0 && x.km <= 300).sort(sortFn);
+    const far = withKm.filter((x) => x.km > 300).sort(sortFn);
+    const hot = withKm.filter((x) => x.l.sellerMood === "acil").sort(sortFn);
+    return [
+      { key: "hot", title: "🔥 Fırsat rafı — acil satılıklar", items: hot, note: "Sahibi acele ediyor, pazarlık payı yüksek" },
+      { key: "here", title: `📍 Bulunduğun il — ${cityByPlate(state.currentCity).name}`, items: here, note: "Hemen inceleyip pazarlığa oturabilirsin" },
+      { key: "near", title: "🚗 Yakın iller (≤300 km)", items: near, note: "Kısa yol, düşük masraf" },
+      { key: "far", title: "🗺️ Uzak iller", items: far, note: "Uzun yol ama bazen en iyi fiyatlar burada" },
+    ];
+  }, [state.listings, state.currentCity]);
 
   const open = openId ? state.listings.find((l) => l.id === openId) ?? null : null;
 
+  if (open) {
+    return (
+      <div className="subview">
+        <button className="small back-btn" onClick={() => setOpenId(null)}>
+          ← Raflara Dön
+        </button>
+        <ListingDetail listing={open} onClose={() => setOpenId(null)} />
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <div className="subview">
       <div className="card" style={{ padding: 8, marginBottom: 12 }}>
         <MarketScene />
       </div>
       <AuctionBanner />
-      <div className="row between" style={{ marginBottom: 12 }}>
-        <div className="row">
-          <strong>{listings.length} ilan</strong>
-          <label className="row" style={{ fontSize: 13.5, color: "var(--muted)", gap: 5 }}>
-            <input
-              type="checkbox"
-              checked={onlyHere}
-              onChange={(e) => setOnlyHere(e.target.checked)}
-            />
-            Sadece bulunduğum il ({cityByPlate(state.currentCity).name})
-          </label>
+      <div className="row between" style={{ marginBottom: 6 }}>
+        <strong>{state.listings.length} ilan · raflarda gezin →</strong>
+        <span style={{ fontSize: 12.5, color: "var(--muted)" }}>Her gün yeni ilanlar düşer.</span>
+      </div>
+
+      {shelves.map((s) => (
+        <div className="shelf" key={s.key}>
+          <div className="shelf-head">
+            <strong>{s.title}</strong>
+            <span>{s.items.length > 0 ? `${s.items.length} araç · ${s.note}` : "boş"}</span>
+          </div>
+          {s.items.length === 0 ? (
+            <div className="shelf-empty">Bu rafta şu an araç yok.</div>
+          ) : (
+            <div className="shelf-row">
+              {s.items.map(({ l, km }) => (
+                <ShelfCard key={l.id} listing={l} km={km} onOpen={() => { sfx.click(); setOpenId(l.id); }} />
+              ))}
+            </div>
+          )}
         </div>
-        <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
-          Her gün yeni ilanlar düşer, eskiler satılır gider.
-        </span>
-      </div>
-
-      <div className="grid">
-        {listings.map((l) => (
-          <ListingCard key={l.id} listing={l} onOpen={() => setOpenId(l.id)} />
-        ))}
-      </div>
-      {listings.length === 0 && (
-        <div className="empty">Bu filtreyle ilan yok. Yarın yeni ilanlar düşecek.</div>
-      )}
-
-      {open && <ListingModal listing={open} onClose={() => setOpenId(null)} />}
+      ))}
     </div>
   );
 }
 
-function ListingCard({ listing, onOpen }: { listing: Listing; onOpen: () => void }) {
-  const { state } = useGame();
+function ShelfCard({ listing, km, onOpen }: { listing: Listing; km: number; onOpen: () => void }) {
   const city = cityByPlate(listing.cityPlate);
-  const km = roadDistance(state.currentCity, listing.cityPlate);
   const car = listing.car;
+  const moodClass = listing.sellerMood === "acil" ? "red" : listing.sellerMood === "sabirli" ? "blue" : "";
   return (
-    <div className="card">
-      <div className="row between">
-        <h3>
-          {car.year} {car.brand} {car.model}
-        </h3>
+    <div className="shelf-card" onClick={onOpen} role="button" tabIndex={0}>
+      <div className="shelf-car">🚗</div>
+      <div className="shelf-title">
+        {car.year} {car.brand} {car.model}
       </div>
-      <div className="sub">
-        📍 {city.name} {km > 0 ? `(${km} km uzakta)` : "(buradasınız)"} · {listing.sellerName} ·{" "}
-        {listing.sellerType === "sahibinden" ? "Sahibinden" : "Galeriden"}
+      <div className="shelf-sub">
+        📍 {city.name} {km > 0 ? `· ${km} km` : "· buradasın"}
       </div>
-      <div className="row" style={{ marginBottom: 8 }}>
-        <span className="tag">{car.km.toLocaleString("tr-TR")} km</span>
-        <span className="tag">{car.color}</span>
-        <span
-          className={
-            "tag " + (listing.sellerMood === "acil" ? "red" : listing.sellerMood === "sabirli" ? "blue" : "")
-          }
-        >
-          {MOOD_LABELS[listing.sellerMood]}
-        </span>
-        {listing.expertised && <span className="tag green">🔍 Ekspertizli</span>}
-        {listing.testDriven && <span className="tag green">🛞 Sürüldü</span>}
+      <div className="row" style={{ gap: 4, marginTop: 4 }}>
+        <span className="tag">{Math.round(car.km / 1000)}k km</span>
+        <span className={"tag " + moodClass}>{MOOD_LABELS[listing.sellerMood]}</span>
       </div>
-      <div className="row between">
-        <span className="price">{fmtMoney(listing.askingPrice)}</span>
-        <button onClick={onOpen}>İncele →</button>
+      <div className="row" style={{ gap: 4, marginTop: 4 }}>
+        {listing.expertised && <span className="tag green">🔍</span>}
+        {listing.testDriven && <span className="tag green">🛞</span>}
       </div>
+      <div className="shelf-price">{fmtMoney(listing.askingPrice)}</div>
     </div>
   );
 }
 
 type Bubble = { who: "me" | "them"; text: string };
 
-function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => void }) {
+function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => void }) {
   const { state, dispatch } = useGame();
   const car = listing.car;
   const city = cityByPlate(listing.cityPlate);
+  const home = cityByPlate(state.homeCity);
   const here = state.currentCity === listing.cityPlate;
   const km = roadDistance(state.currentCity, listing.cityPlate);
   const travelCost = travelCostFor(km, state.level, travelCostMultiplier(state));
@@ -131,6 +138,7 @@ function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => v
   const slotFull = state.inventory.length >= state.gallerySlots;
 
   const [driving, setDriving] = useState(false);
+  const [delivering, setDelivering] = useState<number | null>(null); // anlaşılan fiyat
   const [nego, setNego] = useState<SellerNegoState | null>(null);
   const [chat, setChat] = useState<Bubble[]>([]);
   const [offer, setOffer] = useState(listing.askingPrice);
@@ -176,38 +184,65 @@ function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => v
     }
   }
 
-  function acceptAsking(price: number) {
+  function buyWithTransport(price: number) {
     if (state.money < price + transportCost || slotFull) return;
     sfx.buy();
-    dispatch({ type: "BUY", listingId: listing.id, price });
+    dispatch({ type: "BUY", listingId: listing.id, price, deliver: "nakliye" });
     onClose();
   }
 
+  // ---- 3D sürüşler: test sürüşü ya da eve götürme ----
   if (driving) {
     return (
-      <Modal title={`🛞 Test Sürüşü — ${car.brand} ${car.model}`} onClose={() => {}} wide>
+      <div>
+        <h3 style={{ marginTop: 0 }}>🛞 Test Sürüşü — {car.brand} {car.model}</h3>
         <TestDrive3D
           car={car}
           onDone={(found, crashed) => {
-            dispatch({
-              type: "TESTDRIVE_DONE",
-              listingId: listing.id,
-              foundFaultIds: found,
-              crashed,
-            });
+            dispatch({ type: "TESTDRIVE_DONE", listingId: listing.id, foundFaultIds: found, crashed });
             setDriving(false);
           }}
         />
-      </Modal>
+      </div>
+    );
+  }
+  if (delivering !== null) {
+    return (
+      <div>
+        <h3 style={{ marginTop: 0 }}>
+          🏁 {city.name} → {home.name}: {car.brand} {car.model} ile yoldasınız ({transportKm} km)
+        </h3>
+        <TestDrive3D
+          car={car}
+          deliveryKm={transportKm}
+          homeName={home.name}
+          onDone={(found, crashed, brokeDown) => {
+            sfx.buy();
+            dispatch({
+              type: "BUY",
+              listingId: listing.id,
+              price: delivering,
+              deliver: "sur",
+              drive: { crashed, brokeDown, foundFaultIds: found },
+            });
+            onClose();
+          }}
+        />
+      </div>
     );
   }
 
+  const canPay = (price: number, withTransport: boolean) =>
+    state.money >= price + (withTransport ? transportCost : 0) && !slotFull;
+
   return (
-    <Modal title={`${car.year} ${car.brand} ${car.model}`} onClose={onClose} wide>
+    <div>
+      <h2 style={{ margin: "6px 0 4px" }}>
+        {car.year} {car.brand} {car.model}
+      </h2>
       <div className="sub" style={{ color: "var(--muted)", marginBottom: 10 }}>
         📍 {city.name} · Satıcı: {listing.sellerName} (
-        {listing.sellerType === "sahibinden" ? "Sahibinden" : "Galeriden"}) ·{" "}
-        {MOOD_LABELS[listing.sellerMood]}
+        {listing.sellerType === "sahibinden" ? "Sahibinden" : "Galeriden"}) · {MOOD_LABELS[listing.sellerMood]}
       </div>
 
       <CarSpecs car={car} fullInfo={listing.expertised} declaredHonest={listing.honest} />
@@ -216,7 +251,7 @@ function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => v
         <span className="price">İstenen: {fmtMoney(listing.askingPrice)}</span>
         {transportKm > 0 && (
           <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
-            + Nakliye ({transportKm} km): ~{fmtMoney(transportCost)}
+            Nakliye ({transportKm} km): ~{fmtMoney(transportCost)} — ya da kendin sür, bedava
           </span>
         )}
       </div>
@@ -249,7 +284,7 @@ function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => v
               🔍 Ekspertiz ({fmtMoney(expCost)}, 1 saat)
             </button>
             <button disabled={dead} onClick={() => setDriving(true)}>
-              🛞 Test Sürüşü (3 dk)
+              🛞 Test Sürüşü (3D)
             </button>
             {!nego && !dead && (
               <button className="primary" onClick={startNego}>
@@ -287,50 +322,81 @@ function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => v
                     Teklif Ver
                   </button>
                   <button
-                    onClick={() => {
-                      const last = [...chat].reverse().find((b) => b.who === "them");
-                      void last;
-                      acceptAsking(nego.lastCounter);
-                    }}
-                    disabled={state.money < nego.lastCounter + transportCost || slotFull}
                     className="success"
+                    disabled={state.money < nego.lastCounter || slotFull}
+                    onClick={() => {
+                      sfx.cash();
+                      setAgreed(nego.lastCounter);
+                      setChat((c) => [...c, { who: "me", text: `Tamam, ${fmtMoney(nego.lastCounter)} olsun.` }]);
+                    }}
                   >
-                    {fmtMoney(nego.lastCounter)} kabul et, satın al
+                    {fmtMoney(nego.lastCounter)} kabul et
                   </button>
                 </div>
               ) : (
-                <div className="row between">
+                <div className="card" style={{ borderColor: "var(--green)", marginTop: 8 }}>
                   <strong style={{ color: "var(--green)" }}>
-                    🤝 {fmtMoney(agreed)} fiyatta anlaştınız!
+                    🤝 {fmtMoney(agreed)} fiyatta anlaştınız! Aracı galeriye nasıl götürelim?
                   </strong>
-                  <button
-                    className="primary"
-                    disabled={state.money < agreed + transportCost || slotFull}
-                    onClick={() => acceptAsking(agreed)}
-                  >
-                    💰 Satın Al ({fmtMoney(agreed + transportCost)})
-                  </button>
+                  <div className="deliver-options">
+                    {transportKm > 0 ? (
+                      <>
+                        <button
+                          className="deliver-btn"
+                          disabled={!canPay(agreed, true)}
+                          onClick={() => buyWithTransport(agreed)}
+                        >
+                          <span className="big">🚚</span>
+                          <span className="t">Nakliyeyle Gönder</span>
+                          <span className="d">
+                            +{fmtMoney(transportCost)} · toplam {fmtMoney(agreed + transportCost)}
+                            {transportKm > 250 ? " · yarın gelir" : " · bugün gelir"}
+                          </span>
+                        </button>
+                        <button
+                          className="deliver-btn primary"
+                          disabled={!canPay(agreed, false)}
+                          onClick={() => {
+                            sfx.travel();
+                            setDelivering(agreed);
+                          }}
+                        >
+                          <span className="big">🚗</span>
+                          <span className="t">Kendin Sür (3D)</span>
+                          <span className="d">
+                            Nakliye bedava · {transportKm} km · ~{travelHours(transportKm)} saat · yolda
+                            kalma ve kaza riski sende
+                          </span>
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="deliver-btn primary"
+                        disabled={!canPay(agreed, false)}
+                        onClick={() => buyWithTransport(agreed)}
+                      >
+                        <span className="big">💰</span>
+                        <span className="t">Satın Al</span>
+                        <span className="d">Galeri bu ilde — nakliye gerekmez</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               {slotFull && (
                 <div style={{ color: "var(--red)", fontSize: 13, marginTop: 6 }}>
-                  ⚠️ Galerinizde boş yer yok! Önce bir araç satın veya galeriyi büyütün.
+                  ⚠️ Galerinizde boş yer yok! Önce bir araç satın veya Tesis'ten vitrini büyütün.
                 </div>
               )}
-              {agreed !== null && state.money < agreed + transportCost && (
+              {agreed !== null && state.money < agreed && (
                 <div style={{ color: "var(--red)", fontSize: 13, marginTop: 6 }}>
-                  ⚠️ Kasanızda yeterli para yok (nakliye dahil {fmtMoney(agreed + transportCost)}{" "}
-                  gerekiyor).
+                  ⚠️ Kasanızda yeterli para yok ({fmtMoney(agreed)} gerekiyor).
                 </div>
               )}
             </>
           )}
         </>
       )}
-
-      <div className="close-row">
-        <button onClick={onClose}>Kapat</button>
-      </div>
-    </Modal>
+    </div>
   );
 }

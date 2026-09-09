@@ -67,8 +67,13 @@ export function FxLayer() {
     // İlk render: sadece referansları kaydet, efekt patlatma
     const firstRun = prevDay.current === null;
 
-    // Şehirlerarası yolculuk sineması (araba içi görünüm)
-    if (!firstRun && prevCity.current !== null && state.currentCity !== prevCity.current) {
+    // Şehirlerarası yolculuk sineması (araba içi görünüm).
+    // Aracı kendin sürerek getirdiysen (🏁 kaydı) 3D sürüşü zaten yaşadın; sinema atlanır.
+    // (başarım/seviye kayıtları 🏁'nin üstüne binebilir; aynı günün ilk birkaç kaydına bak)
+    const droveHome = state.log
+      .slice(0, 6)
+      .some((e) => e.day === state.day && e.text.startsWith("🏁"));
+    if (!firstRun && prevCity.current !== null && state.currentCity !== prevCity.current && !droveHome) {
       setTravel({
         fromName: cityByPlate(prevCity.current).name,
         toName: cityByPlate(state.currentCity).name,

@@ -858,6 +858,232 @@ select:focus {
   }
 }
 
+/* ---- Tam ekran oyun kökü: 3D dünya + sahne içi HUD ---- */
+.game-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: #0f1420;
+}
+.hub-full {
+  position: absolute;
+  inset: 0;
+}
+.hud-top {
+  position: absolute;
+  top: max(6px, env(safe-area-inset-top));
+  left: max(8px, env(safe-area-inset-left));
+  right: max(8px, env(safe-area-inset-right));
+  z-index: 60;
+  pointer-events: none;
+}
+.hud-top .topbar {
+  position: static;
+  pointer-events: auto;
+  margin-bottom: 0;
+  background: rgba(15, 20, 32, 0.78);
+  backdrop-filter: blur(10px);
+}
+.hud-dock--overlay {
+  position: absolute;
+  left: 50%;
+  bottom: max(10px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: calc(100% - 16px);
+  padding: 6px;
+  background: rgba(15, 20, 32, 0.72);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+}
+.hub-hint--top {
+  bottom: auto;
+  top: 118px;
+  z-index: 55;
+}
+.fly-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 58;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 40%, rgba(5, 8, 15, 0.55) 100%);
+  animation: overlayIn 0.3s ease;
+}
+
+/* Oyun ekranı: kamera vardığında sahnenin üstünde açılır */
+.screen-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  padding-top: 122px;
+  background: rgba(5, 8, 15, 0.42);
+  animation: overlayIn 0.2s ease;
+}
+.screen-card {
+  width: min(940px, 100%);
+  max-height: calc(100% - 96px);
+  background: rgba(22, 29, 46, 0.96);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  animation: screenIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: scale(0.86) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Ekran içi alt görünüm geçişi (raf → detay) */
+.subview {
+  animation: subviewIn 0.26s ease;
+}
+@keyframes subviewIn {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.back-btn {
+  margin-bottom: 10px;
+}
+
+/* İlan rafları */
+.shelf {
+  margin-bottom: 16px;
+}
+.shelf-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--border);
+}
+.shelf-head span {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.shelf-empty {
+  color: var(--muted);
+  font-size: 13px;
+  padding: 10px 4px;
+}
+.shelf-row {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding: 4px 2px 10px;
+  scrollbar-width: thin;
+}
+.shelf-card {
+  flex: 0 0 200px;
+  scroll-snap-align: start;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+  position: relative;
+}
+.shelf-card:hover,
+.shelf-card:active {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+}
+.shelf-car {
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.shelf-title {
+  font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1.25;
+  min-height: 34px;
+}
+.shelf-sub {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.shelf-price {
+  margin-top: 8px;
+  font-weight: 800;
+  color: var(--accent2);
+  font-size: 15px;
+}
+
+/* Teslimat seçimi */
+.deliver-options {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.deliver-btn {
+  flex: 1 1 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px 14px;
+  text-align: left;
+  border-radius: 12px;
+}
+.deliver-btn .big {
+  font-size: 24px;
+}
+.deliver-btn .t {
+  font-weight: 800;
+  font-size: 15px;
+}
+.deliver-btn .d {
+  font-size: 12px;
+  opacity: 0.85;
+  line-height: 1.3;
+}
+
+@media (max-width: 640px) {
+  .hub-hint--top {
+    display: none;
+  }
+  .screen-overlay {
+    padding: 4px;
+    padding-top: 150px;
+    align-items: stretch;
+  }
+  .screen-card {
+    max-height: calc(100% - 92px);
+    border-radius: 12px;
+  }
+  .shelf-card {
+    flex-basis: 170px;
+  }
+}
+
 /* ---- Yolculuk sineması ---- */
 .travel-overlay {
   position: fixed;

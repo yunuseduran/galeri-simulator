@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { facilityLevel, type FacilityKey } from "../game/facilities";
@@ -69,6 +69,29 @@ const FACILITY_PANEL: Record<FacilityKey, PanelKey> = {
 
 const CAR_COLORS = [0xc0473e, 0x3e6ec0, 0x3ec06b, 0xc0a23e, 0x8e8e8e, 0xd8d8d8, 0x5a3ec0];
 
+/** Kameranın uçabileceği yerler */
+export type FlyTarget = FacilityKey | "pazar" | "lig" | "ofis" | "musteri" | "overview";
+
+export interface Hub3DHandle {
+  flyTo: (target: FlyTarget) => void;
+}
+
+const OVERVIEW_POS = new THREE.Vector3(16, 15, 24);
+const OVERVIEW_TGT = new THREE.Vector3(0, 0.5, 0);
+
+function cameraPreset(target: FlyTarget): { pos: THREE.Vector3; tgt: THREE.Vector3 } {
+  if (target === "overview") return { pos: OVERVIEW_POS.clone(), tgt: OVERVIEW_TGT.clone() };
+  if (target === "pazar") return { pos: new THREE.Vector3(12.5, 5.5, 16), tgt: new THREE.Vector3(17.5, 3.4, 8.6) };
+  if (target === "lig") return { pos: new THREE.Vector3(11, 5, 2), tgt: new THREE.Vector3(17.5, 3.6, -4) };
+  if (target === "ofis") return { pos: new THREE.Vector3(15.5, 5, 1), tgt: new THREE.Vector3(10.5, 1.4, -5.5) };
+  if (target === "musteri") return { pos: new THREE.Vector3(-6, 4, 16), tgt: new THREE.Vector3(-11, 0.8, 8.5) };
+  const [x, z, w] = LOTS[target];
+  return {
+    pos: new THREE.Vector3(x + Math.max(6, w * 0.7), 6.5, z + 10),
+    tgt: new THREE.Vector3(x, 1.4, z),
+  };
+}
+
 function makeLabelSprite(text: string, scale = 1): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
@@ -137,13 +160,17 @@ function makePerson(color: number): THREE.Group {
   return g;
 }
 
-export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: FacilityKey) => void }) {
+export const Hub3D = forwardRef<Hub3DHandle, { onOpen: (panel: PanelKey, facility?: FacilityKey) => void }>(
+  function Hub3D({ onOpen }, ref) {
   const { state } = useGame();
   const containerRef = useRef<HTMLDivElement>(null);
   const gameRef = useRef(state);
   gameRef.current = state;
   const onOpenRef = useRef(onOpen);
   onOpenRef.current = onOpen;
+  const flyRef = useRef<(t: FlyTarget) => void>(() => {});
+
+  useImperativeHandle(ref, () => ({ flyTo: (t) => flyRef.current(t) }), []);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -164,10 +191,32 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
-    controls.minDistance = 12;
+    controls.minDistance = 5;
     controls.maxDistance = 46;
     controls.maxPolarAngle = 1.32;
     controls.minPolarAngle = 0.35;
+
+    // kamera uçuşu (bir binaya odaklan / genel görünüme dön)
+    let tween: {
+      fromPos: THREE.Vector3;
+      toPos: THREE.Vector3;
+      fromTgt: THREE.Vector3;
+      toTgt: THREE.Vector3;
+      t: number;
+      dur: number;
+    } | null = null;
+    flyRef.current = (target: FlyTarget) => {
+      const preset = cameraPreset(target);
+      tween = {
+        fromPos: camera.position.clone(),
+        toPos: preset.pos,
+        fromTgt: controls.target.clone(),
+        toTgt: preset.tgt,
+        t: 0,
+        dur: 0.9,
+      };
+      controls.enabled = false;
+    };
 
     function resize() {
       const w = container!.clientWidth;
@@ -762,6 +811,19 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
       // bayrak dalgalanır
       fCloth.rotation.y = Math.sin(t * 3) * 0.25;
 
+      // kamera uçuşu
+      if (tween) {
+        tween.t += dt;
+        const p = Math.min(1, tween.t / tween.dur);
+        const k = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2; // easeInOutCubic
+        camera.position.lerpVectors(tween.fromPos, tween.toPos, k);
+        controls.target.lerpVectors(tween.fromTgt, tween.toTgt, k);
+        if (p >= 1) {
+          tween = null;
+          controls.enabled = true;
+        }
+      }
+
       controls.update();
       renderer.render(scene, camera);
       const win = window as unknown as { __hubFrames?: number };
@@ -792,4 +854,5 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
       aria-label="3D galeri dünyası — binalara tıklayın, sürükleyerek döndürün"
     />
   );
-}
+  }
+);

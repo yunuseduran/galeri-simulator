@@ -76,15 +76,22 @@ function makeCar3D(color: number): THREE.Group {
 export function TestDrive3D({
   car,
   onDone,
+  deliveryKm,
+  homeName,
 }: {
   car: Car;
-  onDone: (foundFaultIds: string[], crashed: boolean) => void;
+  onDone: (foundFaultIds: string[], crashed: boolean, brokeDown: boolean) => void;
+  /** Verilirse "eve götürme" modu: mesafeye göre süre, yolda kalma riski, kalan km göstergesi */
+  deliveryKm?: number;
+  homeName?: string;
 }) {
+  const delivery = !!deliveryKm && deliveryKm > 0;
+  const duration = delivery ? Math.max(15, Math.min(60, deliveryKm! / 30)) : DURATION;
   const containerRef = useRef<HTMLDivElement>(null);
   const [hints, setHints] = useState<string[]>([]);
-  const [hud, setHud] = useState({ speed: 0, timeLeft: DURATION, temp: 70 });
+  const [hud, setHud] = useState({ speed: 0, timeLeft: duration, temp: 70, kmLeft: deliveryKm ?? 0 });
   const [over, setOver] = useState<null | "crash" | "done">(null);
-  const stateRef = useRef({ found: new Set<string>(), crashed: false, ended: false });
+  const stateRef = useRef({ found: new Set<string>(), crashed: false, ended: false, brokeDown: false });
   const keys = useRef({ up: false, down: false, left: false, right: false });
 
   useEffect(() => {
@@ -248,6 +255,12 @@ export function TestDrive3D({
     let engineStarted = !has("battery");
     let startDelay = has("battery") ? 2.5 : 0;
     let shake = 0;
+    // Eve götürme modu: gizli arızası olan araç yolun ortasında kalabilir
+    const breakdownAt =
+      delivery && faults.length > 0 && Math.random() < 0.4
+        ? duration * (0.3 + Math.random() * 0.4)
+        : -1;
+    let stalled = 0;
     const engine = new EngineSound();
     engine.start();
     const clock = new THREE.Clock();
@@ -270,7 +283,10 @@ export function TestDrive3D({
       if (crashed) sfx.crash();
       setOver(crashed ? "crash" : "done");
       renderer.setAnimationLoop(null);
-      setTimeout(() => onDone(Array.from(stateRef.current.found), crashed), crashed ? 1600 : 600);
+      setTimeout(
+        () => onDone(Array.from(stateRef.current.found), crashed, stateRef.current.brokeDown),
+        crashed ? 1600 : 600
+      );
     }
 
     if (has("battery")) {
@@ -287,9 +303,21 @@ export function TestDrive3D({
         if (startDelay <= 0) engineStarted = true;
       }
 
+      // yolda kalma olayı (eve götürme modu)
+      if (breakdownAt > 0 && t >= breakdownAt && !stateRef.current.brokeDown) {
+        stateRef.current.brokeDown = true;
+        stalled = 3;
+        sfx.warning();
+        addHint("🛑 Araç yolda kaldı! Çekici çağrıldı... birazdan yola devam.");
+      }
+      if (stalled > 0) {
+        stalled -= dt;
+        speed = Math.max(0, speed - 90 * dt);
+      }
+
       const k = keys.current;
       let accel = 0;
-      if (engineStarted && k.up) {
+      if (stalled <= 0 && engineStarted && k.up) {
         accel = 32;
         if (has("clutch") && speed > 50) {
           accel *= 0.35;
@@ -433,11 +461,12 @@ export function TestDrive3D({
       engine.update(speed, stuttering > 0);
       setHud({
         speed: Math.round(speed),
-        timeLeft: Math.max(0, Math.ceil(DURATION - t)),
+        timeLeft: Math.max(0, Math.ceil(duration - t)),
         temp: Math.round(temp),
+        kmLeft: delivery ? Math.max(0, Math.round(deliveryKm! * (1 - t / duration))) : 0,
       });
 
-      if (t >= DURATION) {
+      if (t >= duration) {
         end(false);
         return;
       }
@@ -491,10 +520,25 @@ export function TestDrive3D({
         <div className="card" style={{ padding: 10 }}>
           <div className="row between">
             <span>
-              ⏱️ {Math.floor(hud.timeLeft / 60)}:{String(hud.timeLeft % 60).padStart(2, "0")}
+              {delivery
+                ? `🏁 ${homeName ?? "Galeri"}: ${hud.kmLeft} km`
+                : `⏱️ ${Math.floor(hud.timeLeft / 60)}:${String(hud.timeLeft % 60).padStart(2, "0")}`}
             </span>
             <strong style={{ fontSize: 20 }}>{hud.speed} km/s</strong>
           </div>
+          {delivery && (
+            <div className="partbar" style={{ marginTop: 6 }}>
+              <div className="track">
+                <div
+                  className="fill"
+                  style={{
+                    width: `${Math.round(100 - (hud.kmLeft / (deliveryKm || 1)) * 100)}%`,
+                    background: "var(--accent)",
+                  }}
+                />
+              </div>
+            </div>
+          )}
           <div style={{ fontSize: 12.5, marginTop: 4 }}>
             🌡️ Motor:{" "}
             <span style={{ color: hud.temp > 100 ? "var(--red)" : "var(--green)" }}>
@@ -506,7 +550,9 @@ export function TestDrive3D({
           <strong style={{ fontSize: 12, color: "var(--muted)" }}>SÜRÜŞ NOTLARI</strong>
           {hints.length === 0 && (
             <div style={{ color: "var(--muted)", marginTop: 6 }}>
-              Arabayı sür, gözünü kulağını açık tut. Sorun varsa kendini belli eder...
+              {delivery
+                ? "Aracı galerine sürüyorsun. Nakliye bedava — ama trafiğe dikkat, kaza hasarı ve yolda kalma riski senin!"
+                : "Arabayı sür, gözünü kulağını açık tut. Sorun varsa kendini belli eder..."}
               <br />
               <br />
               🎮 Ok tuşları / WASD ya da ekrandaki pedallar
@@ -525,20 +571,25 @@ export function TestDrive3D({
         )}
         {over === "done" && (
           <div className="card" style={{ borderColor: "var(--green)", color: "var(--green)" }}>
-            ✅ Sürüş tamamlandı.
+            {delivery ? "🏁 Galeriye vardınız! Araç vitrinde." : "✅ Sürüş tamamlandı."}
           </div>
         )}
-        {!over && (
+        {!over && !delivery && (
           <button
             className="primary"
             onClick={() => {
               stateRef.current.ended = true;
               setOver("done");
-              setTimeout(() => onDone(Array.from(stateRef.current.found), false), 400);
+              setTimeout(() => onDone(Array.from(stateRef.current.found), false, false), 400);
             }}
           >
             Sürüşü Bitir ✅
           </button>
+        )}
+        {!over && delivery && (
+          <div style={{ fontSize: 12, color: "var(--muted)", textAlign: "center" }}>
+            Yol bitene kadar sür — galeriye varınca araç otomatik teslim olur.
+          </div>
         )}
       </div>
     </div>

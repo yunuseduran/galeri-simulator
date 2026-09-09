@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useGame } from "./game/state";
 import { currentUser } from "./game/auth";
 import type { FacilityKey } from "./game/facilities";
 import { Login } from "./components/Login";
 import { NewGame } from "./components/NewGame";
 import { TopBar } from "./components/TopBar";
-import { Hub3D, type PanelKey } from "./components/Hub3D";
+import { Hub3D, type FlyTarget, type Hub3DHandle, type PanelKey } from "./components/Hub3D";
 import { Showroom } from "./components/Showroom";
 import { Market } from "./components/Market";
 import { Workshop } from "./components/Workshop";
@@ -31,10 +31,35 @@ const PANEL_TITLES: Record<PanelKey, string> = {
   defter: "📜 Defter",
 };
 
+/** Panel açılınca kameranın uçacağı yer */
+function flyTargetFor(panel: PanelKey, facility?: FacilityKey): FlyTarget {
+  if (facility) return facility;
+  switch (panel) {
+    case "galeri":
+      return "showroom";
+    case "atolye":
+      return "atolye";
+    case "tesis":
+      return "showroom";
+    case "pazar":
+      return "pazar";
+    case "lig":
+      return "lig";
+    case "ofis":
+      return "ofis";
+    case "musteri":
+      return "musteri";
+    default:
+      return "overview";
+  }
+}
+
 export default function App() {
   const { state } = useGame();
   const [panel, setPanel] = useState<PanelKey | null>(null);
   const [facilitySel, setFacilitySel] = useState<FacilityKey>("showroom");
+  const [flying, setFlying] = useState(false);
+  const hubRef = useRef<Hub3DHandle>(null);
   const user = currentUser();
 
   if (!user) {
@@ -57,9 +82,21 @@ export default function App() {
   const customerCount = state.customers.length;
   const rank = playerRank(state);
 
+  /** Önce kamera oraya uçar, sonra ekran açılır (mobil oyun geçişi) */
   function openPanel(p: PanelKey, facility?: FacilityKey) {
     if (facility) setFacilitySel(facility);
-    setPanel(p);
+    hubRef.current?.flyTo(flyTargetFor(p, facility));
+    setFlying(true);
+    setPanel(null);
+    window.setTimeout(() => {
+      setPanel(p);
+      setFlying(false);
+    }, 520);
+  }
+
+  function closePanel() {
+    setPanel(null);
+    hubRef.current?.flyTo("overview");
   }
 
   const dock: { key: PanelKey; emoji: string; label: string; badge?: string; badgeBg?: string }[] = [
@@ -99,26 +136,27 @@ export default function App() {
   ];
 
   return (
-    <div className="app game-app">
-      <TopBar />
-
-      {/* 3D oyun dünyası */}
-      <div className="hub-wrap">
-        <Hub3D onOpen={openPanel} />
-        <div className="hub-hint">
-          🖱️ Sürükle: kamerayı döndür · Tekerlek/iki parmak: yakınlaş · Binalara tıkla: yönet
-        </div>
+    <div className="game-root">
+      {/* 3D dünya tam ekran */}
+      <div className="hub-full">
+        <Hub3D ref={hubRef} onOpen={openPanel} />
       </div>
 
-      {/* Oyun HUD'u */}
-      <div className="hud-dock">
+      {/* Üst HUD: kasa, gün, itibar... sahnenin içinde */}
+      <div className="hud-top">
+        <TopBar />
+      </div>
+
+      {/* Alt HUD: oyun tuşları sahnenin içinde */}
+      <div className="hud-dock hud-dock--overlay">
         {dock.map((d) => (
           <button
             key={d.key}
             className={"hud-btn" + (panel === d.key ? " active" : "")}
             onClick={() => {
               sfx.click();
-              setPanel(panel === d.key ? null : d.key);
+              if (panel === d.key) closePanel();
+              else openPanel(d.key);
             }}
           >
             <span className="hud-emoji">{d.emoji}</span>
@@ -132,13 +170,21 @@ export default function App() {
         ))}
       </div>
 
-      {/* Panel: 3D dünyanın üzerine kayar */}
+      {!panel && !flying && (
+        <div className="hub-hint hub-hint--top">
+          🖱️ Sürükle: döndür · Tekerlek/iki parmak: yakınlaş · Binalara ve müşterilere dokun
+        </div>
+      )}
+
+      {flying && <div className="fly-veil" />}
+
+      {/* Ekran: kamera vardığı yerde, sahnenin üstünde mobil oyun ekranı gibi açılır */}
       {panel && (
-        <div className="panel-overlay" onMouseDown={(e) => e.target === e.currentTarget && setPanel(null)}>
-          <div className="panel-sheet">
+        <div className="screen-overlay" onMouseDown={(e) => e.target === e.currentTarget && closePanel()}>
+          <div className="screen-card">
             <div className="panel-head">
               <strong>{PANEL_TITLES[panel]}</strong>
-              <button className="small" onClick={() => setPanel(null)}>
+              <button className="small" onClick={closePanel}>
                 ✖ Kapat
               </button>
             </div>
