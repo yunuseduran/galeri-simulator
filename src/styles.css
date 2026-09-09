@@ -874,7 +874,8 @@ select:focus {
   top: max(6px, env(safe-area-inset-top));
   left: max(8px, env(safe-area-inset-left));
   right: max(8px, env(safe-area-inset-right));
-  z-index: 60;
+  /* Oyun ekranlarının (90) üstünde kalsın: gün bitirme / seyahat pencereleri her zaman erişilebilir */
+  z-index: 95;
   pointer-events: none;
 }
 .hud-top .topbar {
@@ -883,6 +884,10 @@ select:focus {
   margin-bottom: 0;
   background: rgba(15, 20, 32, 0.78);
   backdrop-filter: blur(10px);
+}
+/* Üst bardan açılan pencereler (Günü Bitir, Seyahat) tıklanabilir olmalı */
+.hud-top .modal-overlay {
+  pointer-events: auto;
 }
 .hud-dock--overlay {
   position: absolute;
