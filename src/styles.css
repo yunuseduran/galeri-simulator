@@ -858,6 +858,63 @@ select:focus {
   }
 }
 
+/* ---- Yolculuk sineması ---- */
+.travel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 250;
+  background: #05080f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  animation: overlayIn 0.25s ease;
+  padding: 16px;
+}
+.travel-title {
+  font-size: 18px;
+  color: var(--text);
+}
+.travel-title strong {
+  color: var(--accent);
+}
+.travel-canvas {
+  width: min(92vw, 720px);
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+.travel-bottom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(92vw, 720px);
+}
+.travel-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.travel-bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  animation-name: travelFill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes travelFill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 /* ---- Dokunmatik cihazlar: büyük dokunma hedefleri ---- */
 @media (pointer: coarse) {
   button {

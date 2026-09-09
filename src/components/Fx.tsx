@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useGame } from "../game/state";
 import { sfx } from "../game/sound";
+import { cityByPlate, roadDistance } from "../data/cities";
+import { TravelOverlay } from "./TravelOverlay";
 
 type Toast = { id: number; text: string; kind: string };
 type Burst = { id: number; pieces: { left: number; color: string; delay: number; dur: number }[] };
@@ -19,7 +21,14 @@ export function FxLayer() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [splash, setSplash] = useState<{ day: number } | null>(null);
+  const [travel, setTravel] = useState<null | {
+    fromName: string;
+    toName: string;
+    km: number;
+    hour: number;
+  }>(null);
 
+  const prevCity = useRef<number | null>(null);
   const prevDay = useRef<number | null>(null);
   const prevSold = useRef<number | null>(null);
   const prevRank = useRef<number | null>(null);
@@ -47,6 +56,7 @@ export function FxLayer() {
 
   useEffect(() => {
     if (!state.started) {
+      prevCity.current = null;
       prevDay.current = null;
       prevSold.current = null;
       prevRank.current = null;
@@ -56,6 +66,17 @@ export function FxLayer() {
 
     // İlk render: sadece referansları kaydet, efekt patlatma
     const firstRun = prevDay.current === null;
+
+    // Şehirlerarası yolculuk sineması (araba içi görünüm)
+    if (!firstRun && prevCity.current !== null && state.currentCity !== prevCity.current) {
+      setTravel({
+        fromName: cityByPlate(prevCity.current).name,
+        toName: cityByPlate(state.currentCity).name,
+        km: roadDistance(prevCity.current, state.currentCity),
+        hour: state.hour,
+      });
+    }
+    prevCity.current = state.currentCity;
 
     // Gün geçişi
     if (!firstRun && state.day !== prevDay.current) {
@@ -124,6 +145,8 @@ export function FxLayer() {
           ))}
         </div>
       ))}
+
+      {travel && <TravelOverlay {...travel} onDone={() => setTravel(null)} />}
 
       {splash && (
         <div className="day-splash">

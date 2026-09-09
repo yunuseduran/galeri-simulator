@@ -17,7 +17,7 @@ import {
 } from "../game/negotiation";
 import { CarSpecs } from "./CarSpecs";
 import { Modal } from "./ui";
-import { TestDrive } from "./TestDrive";
+import { TestDrive3D } from "./TestDrive3D";
 import { sfx } from "../game/sound";
 import { travelCostMultiplier } from "../game/facilities";
 import { AuctionBanner } from "./Auction";
@@ -186,7 +186,7 @@ function ListingModal({ listing, onClose }: { listing: Listing; onClose: () => v
   if (driving) {
     return (
       <Modal title={`🛞 Test Sürüşü — ${car.brand} ${car.model}`} onClose={() => {}} wide>
-        <TestDrive
+        <TestDrive3D
           car={car}
           onDone={(found, crashed) => {
             dispatch({

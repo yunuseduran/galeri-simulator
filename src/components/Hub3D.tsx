@@ -235,8 +235,11 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
     const windowMats: THREE.MeshLambertMaterial[] = [];
     const buildingGroups = new Map<FacilityKey, THREE.Group>();
     const lastLevels = new Map<FacilityKey, number>();
+    // inşaat animasyonu: bina tozu dumanıyla yerden yükselir, üstünde çekiç sallanır
+    const constructionAnims: { g: THREE.Group; t: number; hammer: THREE.Sprite; x: number; z: number; w: number }[] = [];
+    const dust: { s: THREE.Sprite; vx: number; vz: number; life: number }[] = [];
 
-    function buildFacility(key: FacilityKey) {
+    function buildFacility(key: FacilityKey, animate = false) {
       const old = buildingGroups.get(key);
       if (old) {
         scene.remove(old);
@@ -373,9 +376,17 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
         obj: g,
         hit: { panel: FACILITY_PANEL[key], facility: key, label: FACILITY_NAMES[key] },
       });
+
+      if (animate && level > 0) {
+        g.scale.y = 0.05;
+        const hammer = makeLabelSprite("🔨", 0.9);
+        hammer.position.set(x, 4.4, z);
+        scene.add(hammer);
+        constructionAnims.push({ g, t: 0, hammer, x, z, w });
+      }
     }
 
-    (Object.keys(LOTS) as FacilityKey[]).forEach(buildFacility);
+    (Object.keys(LOTS) as FacilityKey[]).forEach((k) => buildFacility(k));
 
     // ---- ek tıklanabilirler: reklam panosu (Pazar) + bayrak (Lig) + ofis (Ofis) ----
     const billboard = new THREE.Group();
@@ -456,6 +467,8 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
       g.visible = false;
       walkers.push({ g, x: -14 + i * 4, target: -8 + Math.random() * 10 });
       scene.add(g);
+      // yürüyen müşteriye tıklamak Müşteriler panelini açar
+      clickables.push({ obj: g, hit: { panel: "musteri", label: "🧑 Müşteri" } });
     }
 
     // kıvılcımlar (atölye)
@@ -528,6 +541,7 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
       pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
       for (const c of clickables) {
+        if (!c.obj.visible) continue;
         if (raycaster.intersectObject(c.obj, true).length > 0) return c;
       }
       return null;
@@ -571,9 +585,44 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
       const t = clock.elapsedTime;
       const g = gameRef.current;
 
-      // seviye değiştiyse binayı yeniden kur
+      // seviye değiştiyse binayı inşaat animasyonuyla yeniden kur
       for (const key of Object.keys(LOTS) as FacilityKey[]) {
-        if (lastLevels.get(key) !== facilityLevel(g, key)) buildFacility(key);
+        if (lastLevels.get(key) !== facilityLevel(g, key)) buildFacility(key, true);
+      }
+
+      // inşaat animasyonları: bina yükselir, çekiç sallanır, toz savrulur
+      for (let i = constructionAnims.length - 1; i >= 0; i--) {
+        const a = constructionAnims[i];
+        a.t += dt;
+        const p = Math.min(1, a.t / 1.3);
+        const ease = 1 - Math.pow(1 - p, 3);
+        a.g.scale.y = 0.05 + ease * 0.95;
+        a.hammer.position.y = 4.2 + Math.sin(a.t * 12) * 0.5;
+        a.hammer.material.rotation = Math.sin(a.t * 12) * 0.5;
+        if (p < 1 && Math.random() < 0.4) {
+          const s = makeLabelSprite("💨", 0.45);
+          const ang = Math.random() * Math.PI * 2;
+          s.position.set(a.x + Math.cos(ang) * (a.w / 2), 0.3, a.z + Math.sin(ang) * 1.6);
+          scene.add(s);
+          dust.push({ s, vx: Math.cos(ang) * 1.4, vz: Math.sin(ang) * 1.4, life: 0.9 });
+        }
+        if (p >= 1) {
+          a.g.scale.y = 1;
+          scene.remove(a.hammer);
+          constructionAnims.splice(i, 1);
+        }
+      }
+      for (let i = dust.length - 1; i >= 0; i--) {
+        const d = dust[i];
+        d.life -= dt;
+        d.s.position.x += d.vx * dt;
+        d.s.position.z += d.vz * dt;
+        d.s.position.y += 0.6 * dt;
+        (d.s.material as THREE.SpriteMaterial).opacity = Math.max(0, d.life / 0.9);
+        if (d.life <= 0) {
+          scene.remove(d.s);
+          dust.splice(i, 1);
+        }
       }
 
       // gökyüzü + ışık (oyun saatine göre)
@@ -615,6 +664,8 @@ export function Hub3D({ onOpen }: { onOpen: (panel: PanelKey, facility?: Facilit
         if (Math.abs(w.x - w.target) < 0.2) w.target = -16 + Math.random() * 14;
         w.g.position.x = w.x;
         w.g.position.y = Math.abs(Math.sin(t * 6 + i)) * 0.05;
+        w.g.rotation.z = Math.sin(t * 8 + i * 2) * 0.08; // yürüme salınımı
+        w.g.rotation.y = dir > 0 ? 0 : Math.PI;
       });
 
       // kıvılcımlar
