@@ -20,9 +20,9 @@ const BUILT_COLORS: Record<FacilityKey, string> = {
   otopark: "#8b99b8",
 };
 
-export function Facilities() {
+export function Facilities({ initialSelected = "showroom" }: { initialSelected?: FacilityKey }) {
   const { state, dispatch } = useGame();
-  const [selected, setSelected] = useState<FacilityKey>("showroom");
+  const [selected, setSelected] = useState<FacilityKey>(initialSelected);
 
   const income = dailyFacilityIncome(state);
   const sel = FACILITY_DEFS.find((f) => f.key === selected)!;
