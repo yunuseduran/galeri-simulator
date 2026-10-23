@@ -1041,6 +1041,27 @@ select:focus {
   font-size: 15px;
 }
 
+/* Para girişi */
+.money-input {
+  position: relative;
+  display: inline-block;
+}
+.money-input input {
+  width: 100%;
+  padding-right: 26px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.money-input .money-unit {
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  font-size: 13px;
+}
+
 /* ---- Mobil tam sürüm: telefon düzeni ---- */
 @media (max-width: 640px) {
   .hide-m {

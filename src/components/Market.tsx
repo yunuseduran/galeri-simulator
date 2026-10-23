@@ -19,6 +19,7 @@ import {
   type SellerNegoState,
 } from "../game/negotiation";
 import { CarSpecs } from "./CarSpecs";
+import { ChatBox, MoneyInput } from "./ui";
 import { TestDrive3D } from "./TestDrive3D";
 import { sfx } from "../game/sound";
 import { travelCostMultiplier } from "../game/facilities";
@@ -167,6 +168,7 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
     if (!nego || agreed !== null || dead) return;
     sfx.click();
     const myOffer = Math.max(0, Math.round(offer));
+    if (myOffer <= 0) return;
     setChat((c) => [...c, { who: "me", text: `Teklifim: ${fmtMoney(myOffer)}` }]);
     const { result, state: ns } = sellerRespond(listing, nego, myOffer);
     setNego(ns);
@@ -331,24 +333,18 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
 
           {nego && !dead && (
             <>
-              <div className="chat">
+              <ChatBox dep={chat.length}>
                 {chat.map((b, i) => (
                   <div key={i} className={`bubble ${b.who}`}>
                     {b.text}
                   </div>
                 ))}
-              </div>
+              </ChatBox>
 
               {agreed === null ? (
                 <div className="row">
-                  <input
-                    type="number"
-                    step={1000}
-                    value={offer}
-                    onChange={(e) => setOffer(Number(e.target.value))}
-                    style={{ width: 150 }}
-                  />
-                  <button className="primary" onClick={makeOffer}>
+                  <MoneyInput value={offer} onChange={setOffer} style={{ width: 160 }} onEnter={makeOffer} ariaLabel="Teklifiniz" />
+                  <button className="primary" onClick={makeOffer} disabled={offer <= 0}>
                     Teklif Ver
                   </button>
                   <button

@@ -12,7 +12,7 @@ import {
 import { sfx } from "../game/sound";
 import { travelCostMultiplier } from "../game/facilities";
 import { CarSpecs } from "./CarSpecs";
-import { Modal } from "./ui";
+import { ChatBox, Modal } from "./ui";
 
 /** İlanlar sekmesinin üstünde görünen mezat duyurusu */
 export function AuctionBanner() {
@@ -228,7 +228,7 @@ function BiddingRoom({
         ⚠️ Mezat malı: parça durumu ve gizli arızalar bilinmiyor, iade yok!
       </div>
 
-      <div className="chat" style={{ maxHeight: 180 }}>
+      <ChatBox dep={lines.length + (status === "going" || status === "won" ? 1 : 0)} style={{ maxHeight: 180 }}>
         <div className="bubble them">
           Açılış fiyatı {fmtMoney(startPrice)}! Artıran var mı? ({biddersRef.current.length} rakip
           galerici salonda)
@@ -249,7 +249,7 @@ function BiddingRoom({
         {status === "lost" && leader && leader !== "SİZ" && (
           <div className="bubble them">{leader} kazandı. Bir dahaki sefere!</div>
         )}
-      </div>
+      </ChatBox>
 
       <div className="row between">
         <div>

@@ -103,6 +103,8 @@ export interface BuyerNegoState {
   round: number;
   lastOffer: number; // müşterinin son teklifi
   patience: number;
+  /** Müşteri "son teklifim" dedi: bundan yükseği kabul etmez */
+  final?: boolean;
 }
 
 export function startBuyerNego(customer: Customer): BuyerNegoState {
@@ -118,11 +120,17 @@ export function buyerRespond(
   const s = { ...state, round: state.round + 1 };
   const max = customer.maxPay;
 
+  // Oyuncu müşterinin kendi teklifine ya da altına indi: müşteri kendi teklifini öder (daha düşüğüne değil)
   if (counterPrice <= s.lastOffer) {
     return {
-      result: { type: "accept", price: counterPrice, message: "Anlaştık! Hemen kaparoyu vereyim." },
+      result: { type: "accept", price: s.lastOffer, message: "Anlaştık! Hemen kaparoyu vereyim." },
       state: s,
     };
+  }
+
+  // Son teklif verildiyse, daha yüksek fiyatta müşteri masadan kalkar
+  if (state.final) {
+    return { result: { type: "walkaway", message: "Dediğim son fiyattı. Başka sefere, kolay gelsin." }, state: s };
   }
 
   if (counterPrice > max * 1.3) {
@@ -149,8 +157,11 @@ export function buyerRespond(
   s.patience -= 1;
   if (s.patience <= 0) {
     if (counterPrice <= max * 1.02) {
+      // Sabır bitti: müşteri son teklifini söyler. Oyuncunun onayı olmadan asla otomatik kapanmaz.
+      s.lastOffer = Math.max(s.lastOffer, roundMoney(max, 1000));
+      s.final = true;
       return {
-        result: { type: "accept", price: Math.min(counterPrice, max), message: "Hadi tamam, anlaştık." },
+        result: { type: "counter", price: s.lastOffer, message: "Son sözüm bu, ya al ya bırak:" },
         state: s,
       };
     }

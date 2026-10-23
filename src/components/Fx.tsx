@@ -20,7 +20,9 @@ export function FxLayer() {
   const { state } = useGame();
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [bursts, setBursts] = useState<Burst[]>([]);
-  const [splash, setSplash] = useState<{ day: number } | null>(null);
+  const [splash, setSplash] = useState<{ day: number; delta: number } | null>(null);
+  /** Önceki gün başındaki kasa (gün sonu net değişimi için) */
+  const dayMoney = useRef(state.money);
   const [travel, setTravel] = useState<null | {
     fromName: string;
     toName: string;
@@ -85,9 +87,10 @@ export function FxLayer() {
 
     // Gün geçişi
     if (!firstRun && state.day !== prevDay.current) {
-      setSplash({ day: state.day });
-      window.setTimeout(() => setSplash(null), 1500);
+      setSplash({ day: state.day, delta: state.money - dayMoney.current });
+      window.setTimeout(() => setSplash(null), 2000);
     }
+    if (state.day !== prevDay.current) dayMoney.current = state.money;
     prevDay.current = state.day;
 
     // Satış konfetisi
@@ -158,6 +161,13 @@ export function FxLayer() {
           <div className="big">🌅 Gün {splash.day}</div>
           <div className="sub2">
             {splash.day % 7 === 1 ? "Yeni hafta — kira ödendi!" : "Yeni ilanlar düştü, kapılar açıldı."}
+          </div>
+          <div
+            className="sub2"
+            style={{ color: splash.delta >= 0 ? "var(--green)" : "var(--red)", fontWeight: 700, marginTop: 4 }}
+          >
+            Dün net: {splash.delta >= 0 ? "+" : "−"}
+            {Math.abs(Math.round(splash.delta)).toLocaleString("tr-TR")} ₺
           </div>
         </div>
       )}

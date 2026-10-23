@@ -8,7 +8,7 @@ import {
   type BuyerNegoState,
   type NegoResult,
 } from "../game/negotiation";
-import { Modal } from "./ui";
+import { ChatBox, Modal, MoneyInput } from "./ui";
 import { chance } from "../game/rng";
 import { sfx } from "../game/sound";
 import { CustomersScene } from "./scenes/TabScenes";
@@ -141,6 +141,7 @@ function NegoModal({ customer, onClose }: { customer: Customer; onClose: () => v
     if (done) return;
     sfx.click();
     const p = Math.max(0, Math.round(price));
+    if (p <= 0) return;
     setChat((c) => [...c, { who: "me", text: `${fmtMoney(p)} olursa anlaşırız.` }]);
     if (checkTitiz()) return;
     const { result, state: ns } = buyerRespond(customer, nego, p);
@@ -200,13 +201,13 @@ function NegoModal({ customer, onClose }: { customer: Customer; onClose: () => v
         {fmtMoney(o.totalSpent)}
       </div>
 
-      <div className="chat">
+      <ChatBox dep={chat.length + (agreed ?? 0)}>
         {chat.map((b, i) => (
           <div key={i} className={`bubble ${b.who}`}>
             {b.text}
           </div>
         ))}
-      </div>
+      </ChatBox>
 
       {!done && agreed !== null && (
         <div className="card" style={{ borderColor: "var(--green)" }}>
@@ -242,14 +243,8 @@ function NegoModal({ customer, onClose }: { customer: Customer; onClose: () => v
       {!done && agreed === null && (
         <>
           <div className="row">
-            <input
-              type="number"
-              step={1000}
-              value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              style={{ width: 150 }}
-            />
-            <button className="primary" onClick={counter}>
+            <MoneyInput value={price} onChange={setPrice} style={{ width: 160 }} onEnter={counter} ariaLabel="Satış fiyatı" />
+            <button className="primary" onClick={counter} disabled={price <= 0}>
               Fiyat Söyle
             </button>
             <button className="success" onClick={acceptOffer}>

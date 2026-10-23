@@ -3,11 +3,14 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import { GameProvider } from "./game/state";
 import "./styles.css";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <GameProvider>
-      <App />
-    </GameProvider>
+    <ErrorBoundary>
+      <GameProvider>
+        <App />
+      </GameProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );

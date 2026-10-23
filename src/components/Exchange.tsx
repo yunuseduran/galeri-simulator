@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ASSETS, portfolioValue, type AssetKind } from "../game/exchange";
 import { fmtMoney, useGame } from "../game/state";
 import { sfx } from "../game/sound";
+import { MoneyInput } from "./ui";
 
 const KIND_LABEL: Record<AssetKind, string> = { hisse: "📊 Borsa", kripto: "🪙 Kripto", doviz: "💱 Döviz" };
 
@@ -98,12 +99,12 @@ export function Exchange() {
                 </div>
               )}
               <div className="row">
-                <input
-                  type="number"
-                  step={10000}
+                <MoneyInput
                   value={amount}
-                  onChange={(e) => setAmounts((m) => ({ ...m, [a.key]: Number(e.target.value) }))}
-                  style={{ width: 110 }}
+                  step={10000}
+                  onChange={(n) => setAmounts((m) => ({ ...m, [a.key]: n }))}
+                  style={{ width: 130 }}
+                  ariaLabel={`${a.name} alım tutarı`}
                 />
                 <button
                   className="small success"

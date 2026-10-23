@@ -74,6 +74,8 @@ export default function App() {
   const [flying, setFlying] = useState(false);
   const hubRef = useRef<Hub3DHandle>(null);
   const user = currentUser();
+  const panelRef = useRef<PanelKey | null>(null);
+  panelRef.current = panel;
   const [tour, setTour] = useState<number | null>(null);
   const tourKey = `galeri-sim-tour-done::${user ?? ""}`;
 
@@ -101,6 +103,22 @@ export default function App() {
     return () => window.clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.started, user]);
+
+  // Esc: açık ekranı kapatır, yoksa turu bırakır
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      if (document.querySelector(".modal-overlay")) return; // modalı kendi tuşu kapatır
+      if (panelRef.current) {
+        setPanel(null);
+        hubRef.current?.flyTo("overview");
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Tur adımı değişince kamera o binaya uçar
   useEffect(() => {

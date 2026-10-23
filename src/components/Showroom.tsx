@@ -4,7 +4,7 @@ import { fmtMoney, rentDailyRate, useGame } from "../game/state";
 import { LEGAL_LABELS } from "../types";
 import { carValue, perceivedValue } from "../game/valuation";
 import { CarSpecs } from "./CarSpecs";
-import { Modal } from "./ui";
+import { Modal, MoneyInput } from "./ui";
 import { ShowroomScene } from "./scenes/TabScenes";
 
 export function Showroom() {
@@ -152,16 +152,10 @@ function OwnedCard({
       </div>
       <div className="row" style={{ marginBottom: 8 }}>
         <span style={{ fontSize: 12.5, color: "var(--muted)" }}>Etiket fiyatı:</span>
-        <input
-          type="number"
-          step={5000}
-          value={price}
-          onChange={(e) => setPrice(Number(e.target.value))}
-          style={{ width: 130, padding: "4px 8px", fontSize: 13 }}
-        />
+        <MoneyInput value={price} onChange={setPrice} step={5000} style={{ width: 140 }} ariaLabel="Etiket fiyatı" />
         <button
           className="small"
-          disabled={price === owned.askingPrice}
+          disabled={price === owned.askingPrice || price <= 0}
           onClick={() => dispatch({ type: "SET_ASKING", carId: car.id, price })}
         >
           Güncelle

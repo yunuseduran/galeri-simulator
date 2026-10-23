@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "export:unity": "esbuild scripts/export-unity.ts --bundle --platform=node --format=cjs --outfile=scripts/.export-unity.cjs && node scripts/.export-unity.cjs",
+    "test:nego": "esbuild scripts/test-negotiation.ts --bundle --platform=node --format=cjs --outfile=scripts/.test-nego.cjs && node scripts/.test-nego.cjs",
+    "test": "npm run test:nego && npm run test:legal && npm run test:exchange && npm run test:buy-sur",
     "test:exchange": "esbuild scripts/test-exchange.ts --bundle --platform=node --format=cjs --outfile=scripts/.test-exchange.cjs && node scripts/.test-exchange.cjs",
     "test:legal": "esbuild scripts/test-legal-senet.ts --bundle --platform=node --format=cjs --outfile=scripts/.test-legal.cjs && node scripts/.test-legal.cjs",
     "test:buy-sur": "esbuild scripts/test-buy-sur.ts --bundle --platform=node --format=cjs --outfile=scripts/.test-buy-sur.cjs && node scripts/.test-buy-sur.cjs"

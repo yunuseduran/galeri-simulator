@@ -7,6 +7,7 @@ import { travelCostMultiplier } from "../game/facilities";
 import { isMuted, setMuted, sfx } from "../game/sound";
 import { Modal } from "./ui";
 import { TurkeyMap } from "./TurkeyMap";
+import { Settings } from "./Settings";
 
 // Geliştiriciye 300 ₺'lik kahve bağışı linki (Shopier ürün sayfası).
 const COFFEE_URL = "https://www.shopier.com/yedsoft/48218396";
@@ -53,6 +54,7 @@ export function TopBar() {
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [muted, setMutedState] = useState(isMuted());
   const [selCity, setSelCity] = useState<number | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const city = cityByPlate(state.currentCity);
   const repEmoji =
@@ -142,6 +144,9 @@ export function TopBar() {
         >
           {muted ? "🔇" : "🔊"}
         </button>
+        <button title="Ayarlar, yedek, sıfırlama" onClick={() => setSettingsOpen(true)} aria-label="Ayarlar">
+          ⚙️
+        </button>
         <button
           title="Oyunun adım adım tanıtım turunu başlat"
           onClick={() => {
@@ -179,6 +184,8 @@ export function TopBar() {
           🚪 Çıkış
         </button>
       </div>
+
+      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
 
       {travelOpen && (
         <Modal title="🗺️ Şehirlerarası Seyahat" onClose={() => setTravelOpen(false)} wide>

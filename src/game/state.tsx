@@ -79,6 +79,7 @@ export function auctionTransportFor(km: number, level: number): number {
 export type Action =
   | { type: "NEW_GAME"; playerName: string; galleryName: string; homeCity: number; difficulty: Difficulty }
   | { type: "RESET" }
+  | { type: "LOAD_SAVE"; save: GameState }
   | { type: "TRAVEL"; plate: number }
   | { type: "EXPERTISE"; listingId: string }
   | { type: "TESTDRIVE_DONE"; listingId: string; foundFaultIds: string[]; crashed: boolean }
@@ -301,6 +302,9 @@ function reducer(state: GameState, action: Action): GameState {
 
     case "RESET":
       return { ...emptyState };
+
+    case "LOAD_SAVE":
+      return migrateSave(action.save) ?? state;
 
     case "TRAVEL": {
       if (action.plate === state.currentCity) return state;
@@ -1263,8 +1267,17 @@ function loadSave(): GameState | null {
     if (!key) return null;
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as GameState;
-    if (parsed.version !== SAVE_VERSION || !parsed.started) return null;
+    return migrateSave(JSON.parse(raw) as GameState);
+  } catch {
+    return null;
+  }
+}
+
+/** Kayıt nesnesini doğrular ve eski sürümlerde eksik alanları doldurur (yedekten yüklemede de kullanılır). */
+export function migrateSave(parsed: GameState): GameState | null {
+  try {
+    if (!parsed || parsed.version !== SAVE_VERSION || !parsed.started) return null;
+    if (!Array.isArray(parsed.inventory) || typeof parsed.money !== "number" || !parsed.stats) return null;
     // Eski kayıtlar için yeni alanları doldur
     parsed.loans = parsed.loans ?? [];
     parsed.staff = parsed.staff ?? [];
