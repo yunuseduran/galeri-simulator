@@ -117,7 +117,7 @@ export function TopBar() {
             />
           </div>
         </div>
-        <div className="stat">
+        <div className="stat hide-m">
           <span className="label">Galeri</span>
           <span className="value">
             {state.inventory.length}/{state.gallerySlots} araç
@@ -142,11 +142,21 @@ export function TopBar() {
         >
           {muted ? "🔇" : "🔊"}
         </button>
+        <button
+          title="Oyunun adım adım tanıtım turunu başlat"
+          onClick={() => {
+            sfx.click();
+            window.dispatchEvent(new Event("galeri-start-tour"));
+          }}
+        >
+          🎓 Turu Başlat
+        </button>
         <button onClick={() => setTravelOpen(true)}>🗺️ Seyahat</button>
         <button className="primary" onClick={() => setConfirmEnd(true)}>
           🌙 Günü Bitir
         </button>
         <button
+          className="hide-m"
           title="Geliştiriciye 300 ₺ kahve ısmarla 🙏"
           onClick={() => {
             sfx.click();
@@ -155,7 +165,7 @@ export function TopBar() {
         >
           ☕ Kahve Ismarla
         </button>
-        <span className="stat" style={{ marginLeft: 4 }}>
+        <span className="stat hide-m" style={{ marginLeft: 4 }}>
           <span className="label">Oyuncu</span>
           <span className="value">👤 {currentUser()}</span>
         </span>

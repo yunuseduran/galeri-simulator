@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { TOUR_STEPS, TourCard } from "./components/Tour";
 import { useGame } from "./game/state";
 import { currentUser } from "./game/auth";
 import type { FacilityKey } from "./game/facilities";
@@ -12,6 +13,9 @@ import { Workshop } from "./components/Workshop";
 import { Customers } from "./components/Customers";
 import { Facilities } from "./components/Facilities";
 import { Office } from "./components/Office";
+import { Lawyer } from "./components/Lawyer";
+import { Exchange } from "./components/Exchange";
+import { ExportOffice } from "./components/ExportOffice";
 import { League } from "./components/League";
 import { Career } from "./components/Career";
 import { Ledger } from "./components/Ledger";
@@ -26,6 +30,9 @@ const PANEL_TITLES: Record<PanelKey, string> = {
   atolye: "🔧 Atölye",
   musteri: "🧑‍🤝‍🧑 Müşteriler",
   ofis: "🏦 Ofis",
+  avukat: "⚖️ Hukuk Bürosu",
+  borsa: "📈 Borsa & Kripto",
+  ihracat: "🚢 İhracat Ofisi",
   lig: "🏆 Lig",
   kariyer: "🎖️ Kariyer",
   defter: "📜 Defter",
@@ -47,6 +54,12 @@ function flyTargetFor(panel: PanelKey, facility?: FacilityKey): FlyTarget {
       return "lig";
     case "ofis":
       return "ofis";
+    case "avukat":
+      return "avukat";
+    case "borsa":
+      return "borsa";
+    case "ihracat":
+      return "ihracat";
     case "musteri":
       return "musteri";
     default:
@@ -61,6 +74,49 @@ export default function App() {
   const [flying, setFlying] = useState(false);
   const hubRef = useRef<Hub3DHandle>(null);
   const user = currentUser();
+  const [tour, setTour] = useState<number | null>(null);
+  const tourKey = `galeri-sim-tour-done::${user ?? ""}`;
+
+  // Üst bardaki "Turu Başlat" tuşu olay yayar
+  useEffect(() => {
+    const h = () => {
+      setPanel(null);
+      setTour(0);
+    };
+    window.addEventListener("galeri-start-tour", h);
+    return () => window.removeEventListener("galeri-start-tour", h);
+  }, []);
+
+  // Yeni oyuncu için ilk açılışta tur kendiliğinden başlar
+  useEffect(() => {
+    if (!state.started || !user) return;
+    let done = false;
+    try {
+      done = localStorage.getItem(tourKey) === "1";
+    } catch {
+      done = true;
+    }
+    if (done) return;
+    const t = window.setTimeout(() => setTour(0), 1800);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.started, user]);
+
+  // Tur adımı değişince kamera o binaya uçar
+  useEffect(() => {
+    if (tour === null) return;
+    hubRef.current?.flyTo(TOUR_STEPS[tour].fly);
+  }, [tour]);
+
+  function endTour() {
+    try {
+      localStorage.setItem(tourKey, "1");
+    } catch {
+      /* depolama kapalı olabilir */
+    }
+    setTour(null);
+    hubRef.current?.flyTo("overview");
+  }
 
   if (!user) {
     return (
@@ -96,7 +152,8 @@ export default function App() {
 
   function closePanel() {
     setPanel(null);
-    hubRef.current?.flyTo("overview");
+    // Tur sürüyorsa kamera o adımın binasına dönsün
+    hubRef.current?.flyTo(tour !== null ? TOUR_STEPS[tour].fly : "overview");
   }
 
   const dock: { key: PanelKey; emoji: string; label: string; badge?: string; badgeBg?: string }[] = [
@@ -130,6 +187,26 @@ export default function App() {
       badge: state.loans.length > 0 ? String(state.loans.length) : undefined,
       badgeBg: "var(--accent)",
     },
+    {
+      key: "avukat",
+      emoji: "⚖️",
+      label: "Avukat",
+      badge: (() => {
+        const n =
+          state.notes.filter((x) => x.status === "gecikmis").length +
+          state.inventory.filter((o) => o.legal).length;
+        return n > 0 ? String(n) : undefined;
+      })(),
+      badgeBg: "var(--red)",
+    },
+    { key: "borsa", emoji: "📈", label: "Borsa" },
+    {
+      key: "ihracat",
+      emoji: "🚢",
+      label: "İhracat",
+      badge: state.exports.length > 0 ? String(state.exports.length) : undefined,
+      badgeBg: "var(--blue)",
+    },
     { key: "lig", emoji: "🏆", label: "Lig", badge: `#${rank}`, badgeBg: rank === 1 ? "#b8860b" : "var(--blue)" },
     { key: "kariyer", emoji: "🎖️", label: "Kariyer", badge: `Lv${state.level}`, badgeBg: "var(--green)" },
     { key: "defter", emoji: "📜", label: "Defter" },
@@ -152,7 +229,11 @@ export default function App() {
         {dock.map((d) => (
           <button
             key={d.key}
-            className={"hud-btn" + (panel === d.key ? " active" : "")}
+            className={
+              "hud-btn" +
+              (panel === d.key ? " active" : "") +
+              (tour !== null && !panel && TOUR_STEPS[tour].panel === d.key ? " tour-pulse" : "")
+            }
             onClick={() => {
               sfx.click();
               if (panel === d.key) closePanel();
@@ -176,6 +257,20 @@ export default function App() {
         </div>
       )}
 
+      {tour !== null && !panel && !flying && (
+        <TourCard
+          step={TOUR_STEPS[tour]}
+          index={tour}
+          onPrev={() => setTour(Math.max(0, tour - 1))}
+          onNext={() => (tour >= TOUR_STEPS.length - 1 ? endTour() : setTour(tour + 1))}
+          onSkip={endTour}
+          onOpenPanel={() => {
+            const p = TOUR_STEPS[tour].panel;
+            if (p) openPanel(p);
+          }}
+        />
+      )}
+
       {flying && <div className="fly-veil" />}
 
       {/* Ekran: kamera vardığı yerde, sahnenin üstünde mobil oyun ekranı gibi açılır */}
@@ -195,6 +290,9 @@ export default function App() {
               {panel === "atolye" && <Workshop />}
               {panel === "musteri" && <Customers />}
               {panel === "ofis" && <Office />}
+              {panel === "avukat" && <Lawyer />}
+              {panel === "borsa" && <Exchange />}
+              {panel === "ihracat" && <ExportOffice />}
               {panel === "lig" && <League />}
               {panel === "kariyer" && <Career />}
               {panel === "defter" && <Ledger />}

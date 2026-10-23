@@ -12,11 +12,11 @@ import type {
   StaffRole,
   WorkshopJob,
 } from "../types";
-import { COSMETIC_LABELS, PART_LABELS, STAFF_DEFS } from "../types";
+import { COSMETIC_LABELS, LEGAL_LABELS, PART_LABELS, STAFF_DEFS, isAvailable } from "../types";
 
 // Kaza hasarının yansıyabileceği parçalar (kendin sürerek getirme modu)
 const PART_KEYS_FOR_DAMAGE: PartKey[] = ["fren", "suspansiyon", "lastik", "motor"];
-import { cityByPlate, roadDistance } from "../data/cities";
+import { CITIES, cityByPlate, roadDistance } from "../data/cities";
 import { generateListing, randomPersonName } from "./carFactory";
 import { dailyCustomers } from "./customers";
 import { applyDailyEvents, weeklyExpense } from "./events";
@@ -34,6 +34,15 @@ import {
   type FacilityKey,
 } from "./facilities";
 import { addXp, checkMilestones } from "./career";
+import {
+  assetDef,
+  ensureExchange,
+  EXPORT_COMMISSION,
+  EXPORT_INSPECTION_FEE,
+  initialExchange,
+  refreshExportOffers,
+  stepExchange,
+} from "./exchange";
 import { carValue } from "./valuation";
 import { chance, randInt, roundMoney, uid } from "./rng";
 import { currentUser, saveKeyFor, upsertProfile } from "./auth";
@@ -49,7 +58,6 @@ function activeSaveKey(): string | null {
 export const TRAVEL_COST_PER_KM = 9; // yakıt + masraf ₺/km
 export const TRANSPORT_COST_PER_KM = 14; // çekici/nakliye ₺/km
 export const EXPERTISE_COST = 4000;
-export const MAX_LISTINGS = 42;
 
 /** Yol masrafı — 5. seviye ayrıcalığıyla %15 iner */
 export function travelCostFor(km: number, level: number, facilityMult = 1): number {
@@ -85,8 +93,23 @@ export type Action =
     }
   | { type: "SET_ASKING"; carId: string; price: number }
   | { type: "START_JOB"; carId: string; job: Omit<WorkshopJob, "id" | "carId"> }
-  | { type: "CUSTOMER_DEAL"; customerId: string; price: number }
+  | {
+      type: "CUSTOMER_DEAL";
+      customerId: string;
+      price: number;
+      /** Taksitli satış: peşinat %25, kalanı haftalık senetlerle (vade farkı eklenir) */
+      senet?: { count: 4 | 8 | 12 };
+    }
   | { type: "CUSTOMER_GONE"; customerId: string; angry?: boolean }
+  | { type: "LEGAL_CHECK"; listingId: string }
+  | { type: "LEGAL_SETTLE"; carId: string }
+  | { type: "LEGAL_SUE"; carId: string }
+  | { type: "SENET_NOTICE"; noteId: string }
+  | { type: "SENET_SUE"; noteId: string }
+  | { type: "START_RENT"; carId: string; days: 10 | 20 | 30 }
+  | { type: "EX_BUY"; key: string; amount: number }
+  | { type: "EX_SELL"; key: string; fraction: number }
+  | { type: "EXPORT_SELL"; offerId: string; carId: string }
   | { type: "WHOLESALE"; carId: string }
   | { type: "TAKE_LOAN"; offer: LoanOffer }
   | { type: "PAYOFF_LOAN"; loanId: string }
@@ -97,10 +120,57 @@ export type Action =
   | { type: "BUILD_FACILITY"; facility: FacilityKey }
   | { type: "END_DAY" };
 
-function freshListings(day: number, count: number): Listing[] {
-  const out: Listing[] = [];
-  for (let i = 0; i < count; i++) out.push(generateListing(day));
-  return out;
+/** Her ilde her zaman en az bu kadar ilan bulunur */
+export const MIN_PER_CITY = 5;
+
+/** Pazarda toplam ilan üst sınırı */
+const LISTING_CAP = 1200;
+
+/**
+ * İlan stoğunu tamamlar: her ile en az MIN_PER_CITY ilan, ayrıca rastgele illere `extra` ilan daha.
+ * (Süresi dolan ilanlar temizlendikten sonra çağrılır; böylece hiçbir il boş kalmaz.)
+ */
+function stockListings(s: GameState, extra: number): void {
+  const counts = new Map<number, number>();
+  for (const l of s.listings) counts.set(l.cityPlate, (counts.get(l.cityPlate) ?? 0) + 1);
+  for (const c of CITIES) {
+    for (let n = counts.get(c.plate) ?? 0; n < MIN_PER_CITY; n++) {
+      s.listings.push(generateListing(s.day, c.plate));
+    }
+  }
+  const room = Math.max(0, Math.min(extra, LISTING_CAP - s.listings.length));
+  for (let i = 0; i < room; i++) s.listings.push(generateListing(s.day));
+}
+
+/** Taksitli satış: vade sayısına göre vade farkı */
+export const SENET_MARKUP: Record<4 | 8 | 12, number> = { 4: 0.05, 8: 0.11, 12: 0.18 };
+export const SENET_DOWN_PCT = 0.25;
+
+export function senetPlan(price: number, count: 4 | 8 | 12) {
+  const down = roundMoney(price * SENET_DOWN_PCT, 1000);
+  const rest = price - down;
+  const total = roundMoney(rest * (1 + SENET_MARKUP[count]), 100);
+  const installment = Math.ceil(total / count / 100) * 100;
+  return { down, rest, total, installment };
+}
+
+const SENET_RISK: Record<string, number> = { normal: 0.12, siki: 0.08, acele: 0.25, titiz: 0.05 };
+
+export function hasLawyer(s: GameState): boolean {
+  return s.staff.some((st) => st.role === "avukat");
+}
+export const LEGAL_CHECK_COST = 2500;
+export const LEGAL_SUE_COST = 15000;
+export const SENET_NOTICE_COST = 2000;
+export const SENET_SUE_COST = 8000;
+export function legalCost(s: GameState, base: number): number {
+  return hasLawyer(s) ? Math.round(base / 2) : base;
+}
+export function settleCost(s: GameState, o: OwnedCar): number {
+  return roundMoney(carValue(o.car, s.marketModifiers, s.day) * (hasLawyer(s) ? 0.08 : 0.12), 1000);
+}
+export function rentDailyRate(s: GameState, o: OwnedCar): number {
+  return roundMoney(carValue(o.car, s.marketModifiers, s.day) * 0.0034, 100);
 }
 
 export function newGameState(
@@ -134,6 +204,9 @@ export function newGameState(
     auction: null,
     rivals: generateRivals(homeCity),
     facilities: { showroom: 1 },
+    notes: [],
+    exchange: initialExchange(),
+    exports: [],
     log: [
       {
         day: 1,
@@ -156,7 +229,8 @@ export function newGameState(
     achievements: {},
     rngSeed: Date.now(),
   };
-  base.listings = freshListings(1, 30);
+  stockListings(base, 60);
+  refreshExportOffers(base);
   return base;
 }
 
@@ -183,6 +257,9 @@ const emptyState: GameState = {
   auction: null,
   rivals: [],
   facilities: { showroom: 1 },
+  notes: [],
+  exchange: initialExchange(),
+  exports: [],
   log: [],
   stats: {
     carsBought: 0,
@@ -338,7 +415,15 @@ function reducer(state: GameState, action: Action): GameState {
         totalSpent: total,
         askingPrice: roundMoney(carValue({ ...l.car, hiddenFaults: [] }, s.marketModifiers, s.day) * 1.08, 5000),
         inTransitUntilDay: !selfDrive && km > 250 ? s.day + 1 : undefined,
+        legal: l.legal,
+        legalDeadline: l.legal ? s.day + 3 : undefined,
       };
+      if (l.legal) {
+        log(s, {
+          text: `⚠️ ${l.car.brand} ${l.car.model} için tebligat geldi: ${LEGAL_LABELS[l.legal]}! 3 gün içinde Avukat sekmesinden çözmezseniz araç icradan alınır.`,
+          kind: "uyari",
+        });
+      }
       s.inventory.push(owned);
       s.listings.splice(li, 1);
       s.stats.carsBought++;
@@ -438,7 +523,36 @@ function reducer(state: GameState, action: Action): GameState {
       if (oi < 0) return state;
       const o = s.inventory[oi];
 
-      s.money += action.price;
+      if (o.rental && o.rental.untilDay > s.day) return state; // kiradaki araç satılamaz
+
+      // Taksitli satış: peşinat bugün, kalanı haftalık senetlerle (vade farkıyla)
+      let cashNow = action.price;
+      let senetText = "";
+      if (action.senet) {
+        const plan = senetPlan(action.price, action.senet.count);
+        cashNow = plan.down;
+        const risk = Math.min(0.6, (SENET_RISK[c.style] ?? 0.12) + (s.reputation < 40 ? 0.04 : 0));
+        s.notes.push({
+          id: uid("snt"),
+          buyerName: c.name,
+          carLabel: `${o.car.year} ${o.car.brand} ${o.car.model}`,
+          total: plan.total,
+          remaining: plan.total,
+          installment: plan.installment,
+          count: action.senet.count,
+          paidCount: 0,
+          intervalDays: 7,
+          nextDueDay: s.day + 7,
+          principalRatio: plan.rest / plan.total,
+          risk,
+          missed: 0,
+          status: "aktif",
+          takenDay: s.day,
+        });
+        senetText = ` Senetli: ${fmtMoney(plan.down)} peşin + ${action.senet.count} × ${fmtMoney(plan.installment)} (haftalık).`;
+      }
+
+      s.money += cashNow;
       const profit = action.price - o.totalSpent;
       s.stats.carsSold++;
       s.stats.totalProfit += profit;
@@ -450,10 +564,22 @@ function reducer(state: GameState, action: Action): GameState {
       s.jobs = s.jobs.filter((j) => j.carId !== c.carId);
 
       log(s, {
-        text: `💰 ${o.car.year} ${o.car.brand} ${o.car.model}, ${c.name} adlı müşteriye satıldı! Kâr: ${profit.toLocaleString("tr-TR")} ₺`,
-        amount: action.price,
+        text: `💰 ${o.car.year} ${o.car.brand} ${o.car.model}, ${c.name} adlı müşteriye satıldı! Kâr: ${profit.toLocaleString("tr-TR")} ₺.${senetText}`,
+        amount: cashNow,
         kind: "gelir",
       });
+
+      // Hukuki sorunlu araç satıldıysa alıcı dava açar
+      if (o.legal) {
+        const penalty = Math.round((action.price * (hasLawyer(s) ? 0.12 : 0.25)) / 1000) * 1000;
+        s.money -= penalty;
+        s.reputation = Math.max(0, s.reputation - 8);
+        log(s, {
+          text: `⚖️ ${c.name}, araçtaki ${LEGAL_LABELS[o.legal].toLowerCase()} sorununu öğrenip dava açtı! Tazminat: ${fmtMoney(penalty)}. İtibar -8${hasLawyer(s) ? " (avukatınız cezayı yarıya indirdi)" : ""}`,
+          amount: -penalty,
+          kind: "uyari",
+        });
+      }
 
       // İtibar etkisi — dürüst satış bol itibar kazandırır, gizli arıza nadiren ve hafif zarar verir
       if (o.car.hiddenFaults.length > 0 && chance(0.25)) {
@@ -476,6 +602,237 @@ function reducer(state: GameState, action: Action): GameState {
       return s;
     }
 
+    case "LEGAL_CHECK": {
+      const s = clone(state);
+      const l = s.listings.find((x) => x.id === action.listingId);
+      const cost = legalCost(s, LEGAL_CHECK_COST);
+      if (!l || l.legalChecked || s.money < cost) return state;
+      s.money -= cost;
+      l.legalChecked = true;
+      addXp(s, 5);
+      log(s, {
+        text: l.legal
+          ? `⚖️ Hukuki sorgu: ${l.car.brand} ${l.car.model} — ${LEGAL_LABELS[l.legal]}! Almadan önce düşünün.`
+          : `⚖️ Hukuki sorgu: ${l.car.brand} ${l.car.model} temiz çıktı.`,
+        amount: -cost,
+        kind: l.legal ? "uyari" : "gider",
+      });
+      return s;
+    }
+
+    case "LEGAL_SETTLE": {
+      const s = clone(state);
+      const o = s.inventory.find((x) => x.car.id === action.carId);
+      if (!o || !o.legal) return state;
+      const cost = settleCost(s, o);
+      if (s.money < cost) return state;
+      s.money -= cost;
+      o.totalSpent += cost;
+      log(s, {
+        text: `⚖️ ${o.car.brand} ${o.car.model}: ${LEGAL_LABELS[o.legal].toLowerCase()} sorunu uzlaşmayla kapatıldı.`,
+        amount: -cost,
+        kind: "gider",
+      });
+      o.legal = undefined;
+      o.legalDeadline = undefined;
+      addXp(s, 20);
+      return s;
+    }
+
+    case "LEGAL_SUE": {
+      const s = clone(state);
+      const o = s.inventory.find((x) => x.car.id === action.carId);
+      const fee = legalCost(s, LEGAL_SUE_COST);
+      if (!o || !o.legal || s.money < fee) return state;
+      s.money -= fee;
+      o.totalSpent += fee;
+      if (chance(hasLawyer(s) ? 0.85 : 0.65)) {
+        log(s, {
+          text: `⚖️ Dava kazanıldı! ${o.car.brand} ${o.car.model} üzerindeki ${LEGAL_LABELS[o.legal].toLowerCase()} kaldırıldı.`,
+          amount: -fee,
+          kind: "gelir",
+        });
+        o.legal = undefined;
+        o.legalDeadline = undefined;
+        addXp(s, 40);
+      } else {
+        log(s, {
+          text: `⚖️ Dava kaybedildi — ${o.car.brand} ${o.car.model} için avukatlık ücreti boşa gitti. Uzlaşmayı deneyin ya da yeniden dava açın.`,
+          amount: -fee,
+          kind: "uyari",
+        });
+      }
+      return s;
+    }
+
+    case "SENET_NOTICE": {
+      const s = clone(state);
+      const n = s.notes.find((x) => x.id === action.noteId);
+      const fee = legalCost(s, SENET_NOTICE_COST);
+      if (!n || n.status !== "gecikmis" || s.money < fee) return state;
+      s.money -= fee;
+      if (chance(hasLawyer(s) ? 0.85 : 0.65)) {
+        const amt = Math.min(n.installment, n.remaining);
+        n.remaining -= amt;
+        n.paidCount++;
+        n.missed = 0;
+        n.status = n.remaining <= 0 ? "tamam" : "aktif";
+        n.nextDueDay = s.day + n.intervalDays;
+        s.money += amt;
+        s.stats.totalProfit += amt * (1 - n.principalRatio);
+        log(s, {
+          text: `📨 İhtar işe yaradı: ${n.buyerName} gecikmiş taksiti (${fmtMoney(amt)}) ödedi.`,
+          amount: amt - fee,
+          kind: "gelir",
+        });
+      } else {
+        log(s, { text: `📨 İhtar çekildi ama ${n.buyerName} ödemedi. Dava açmayı düşünün.`, amount: -fee, kind: "uyari" });
+      }
+      return s;
+    }
+
+    case "SENET_SUE": {
+      const s = clone(state);
+      const n = s.notes.find((x) => x.id === action.noteId);
+      const fee = legalCost(s, SENET_SUE_COST);
+      if (!n || (n.status !== "gecikmis" && n.status !== "aktif") || s.money < fee) return state;
+      s.money -= fee;
+      if (chance(hasLawyer(s) ? 0.9 : 0.7)) {
+        const got = Math.round(n.remaining * 0.9);
+        s.money += got;
+        s.stats.totalProfit += got - n.remaining * n.principalRatio;
+        log(s, {
+          text: `⚖️ İcra takibi sonuçlandı: ${n.buyerName} senedinden ${fmtMoney(got)} tahsil edildi (avukatlık ${fmtMoney(fee)}).`,
+          amount: got - fee,
+          kind: "gelir",
+        });
+        n.remaining = 0;
+        n.status = "tamam";
+        addXp(s, 30);
+      } else {
+        const loss = Math.round(n.remaining * n.principalRatio);
+        s.stats.totalProfit -= loss;
+        log(s, {
+          text: `⚖️ İcra takibi sonuçsuz: ${n.buyerName} malvarlığı çıkmadı, senet batık. Zarar ${fmtMoney(loss)}.`,
+          amount: -fee,
+          kind: "uyari",
+        });
+        n.status = "zarar";
+      }
+      return s;
+    }
+
+    case "START_RENT": {
+      const s = clone(state);
+      const o = s.inventory.find((x) => x.car.id === action.carId);
+      if (!o || !isAvailable(o, s.day)) return state;
+      const rate = rentDailyRate(s, o);
+      o.rental = { untilDay: s.day + action.days, dailyRate: rate, renter: randomPersonName() };
+      s.customers = s.customers.filter((x) => x.carId !== o.car.id);
+      log(s, {
+        text: `🔑 ${o.car.brand} ${o.car.model}, ${o.rental.renter} adlı kiracıya ${action.days} günlüğüne verildi (günlük ${fmtMoney(rate)}).`,
+        kind: "info",
+      });
+      return s;
+    }
+
+    case "EX_BUY": {
+      const s = clone(state);
+      const a = assetDef(action.key);
+      const amount = Math.floor(action.amount);
+      if (amount < 100 || s.money < amount) return state;
+      const price = s.exchange.prices[a.key];
+      const qty = Math.floor(((amount * (1 - a.fee)) / price) * 10000) / 10000;
+      if (qty <= 0) return state;
+      s.money -= amount;
+      const h = s.exchange.holdings[a.key] ?? { qty: 0, cost: 0 };
+      h.qty = Math.round((h.qty + qty) * 10000) / 10000;
+      h.cost += amount;
+      s.exchange.holdings[a.key] = h;
+      log(s, {
+        text: `${a.emoji} ${a.name}: ${qty} adet alındı (${fmtMoney(amount)}, komisyon %${(a.fee * 100).toFixed(1)}).`,
+        amount: -amount,
+        kind: "gider",
+      });
+      addXp(s, 3);
+      return s;
+    }
+
+    case "EX_SELL": {
+      const s = clone(state);
+      const a = assetDef(action.key);
+      const h = s.exchange.holdings[a.key];
+      if (!h || h.qty <= 0) return state;
+      const frac = Math.min(1, Math.max(0.01, action.fraction));
+      const qty = frac >= 1 ? h.qty : Math.floor(h.qty * frac * 10000) / 10000;
+      if (qty <= 0) return state;
+      const gross = qty * s.exchange.prices[a.key];
+      const proceeds = Math.round(gross * (1 - a.fee));
+      const costPart = h.cost * (qty / h.qty);
+      const pnl = Math.round(proceeds - costPart);
+      s.money += proceeds;
+      s.stats.totalProfit += pnl;
+      h.qty = Math.round((h.qty - qty) * 10000) / 10000;
+      h.cost -= costPart;
+      if (h.qty <= 0) delete s.exchange.holdings[a.key];
+      log(s, {
+        text: `${a.emoji} ${a.name}: ${qty} adet satıldı. ${pnl >= 0 ? "Kâr" : "Zarar"}: ${fmtMoney(pnl)}`,
+        amount: proceeds,
+        kind: pnl >= 0 ? "gelir" : "uyari",
+      });
+      addXp(s, 3 + Math.max(0, Math.floor(pnl / 20000)));
+      checkMilestones(s);
+      return s;
+    }
+
+    case "EXPORT_SELL": {
+      const s = clone(state);
+      const offer = s.exports.find((x) => x.id === action.offerId);
+      const oi = s.inventory.findIndex((x) => x.car.id === action.carId);
+      if (!offer || oi < 0) return state;
+      const o = s.inventory[oi];
+      const car = o.car;
+      if (!isAvailable(o, s.day) || o.legal) return state;
+      if (car.segment !== offer.segment || car.year < offer.minYear || car.km > offer.maxKm) return state;
+      if (car.knownFaults.length > 0) return state;
+
+      // Alıcı tarafın ihracat ekspertizi: gizli arıza varsa reddedilir, ücret kaybedilir
+      if (car.hiddenFaults.length > 0) {
+        s.money -= EXPORT_INSPECTION_FEE;
+        o.totalSpent += EXPORT_INSPECTION_FEE;
+        const f = car.hiddenFaults.shift()!;
+        car.knownFaults.push(f);
+        s.exports = s.exports.filter((x) => x.id !== offer.id);
+        log(s, {
+          text: `🛃 ${offer.flag} ${offer.country} alıcısının ekspertizi ${car.brand} ${car.model} aracında "${f.label}" buldu — ihracat reddedildi! Ekspertiz ücreti ${fmtMoney(EXPORT_INSPECTION_FEE)}.`,
+          amount: -EXPORT_INSPECTION_FEE,
+          kind: "uyari",
+        });
+        return s;
+      }
+
+      const gross = Math.round((carValue(car, s.marketModifiers, s.day) * offer.premium) / 1000) * 1000;
+      const net = Math.round(gross * (1 - EXPORT_COMMISSION));
+      const profit = net - o.totalSpent;
+      s.money += net;
+      s.stats.carsSold++;
+      s.stats.totalProfit += profit;
+      s.stats.bestFlip = Math.max(s.stats.bestFlip, profit);
+      s.inventory.splice(oi, 1);
+      s.jobs = s.jobs.filter((j) => j.carId !== car.id);
+      s.customers = s.customers.filter((x) => x.carId !== car.id);
+      s.exports = s.exports.filter((x) => x.id !== offer.id);
+      s.reputation = Math.min(100, s.reputation + 3);
+      log(s, {
+        text: `🚢 ${car.year} ${car.brand} ${car.model} → ${offer.flag} ${offer.country} ihraç edildi! ${fmtMoney(gross)} − %${EXPORT_COMMISSION * 100} komisyon. Kâr: ${fmtMoney(profit)}. İtibar +3`,
+        amount: net,
+        kind: "gelir",
+      });
+      addXp(s, 90 + Math.max(0, Math.floor(profit / 10000)));
+      checkMilestones(s);
+      return s;
+    }
+
     case "CUSTOMER_GONE": {
       const s = clone(state);
       const c = s.customers.find((x) => x.id === action.customerId);
@@ -493,6 +850,7 @@ function reducer(state: GameState, action: Action): GameState {
       const oi = s.inventory.findIndex((x) => x.car.id === action.carId);
       if (oi < 0) return state;
       const o = s.inventory[oi];
+      if (o.legal || !isAvailable(o, s.day)) return state; // toptancı hukuki sorunlu/kiradaki aracı almaz
       const price = roundMoney(carValue(o.car, s.marketModifiers, s.day) * 0.78, 1000);
       s.money += price;
       const profit = price - o.totalSpent;
@@ -667,6 +1025,94 @@ function reducer(state: GameState, action: Action): GameState {
         }
       }
 
+      // Kiradaki araçlar: günlük kira + dönüşte hasar riski
+      let rentIncome = 0;
+      for (const o of s.inventory) {
+        if (!o.rental) continue;
+        rentIncome += o.rental.dailyRate;
+        if (o.rental.untilDay <= s.day) {
+          const risky = chance(hasLawyer(s) ? 0.12 : 0.25);
+          o.car.cleanliness = Math.max(10, o.car.cleanliness - (risky ? 30 : 10));
+          o.car.km += randInt(600, 2200);
+          if (risky) {
+            const part = PART_KEYS_FOR_DAMAGE[Math.floor(Math.random() * PART_KEYS_FOR_DAMAGE.length)];
+            o.car.parts[part] = Math.max(10, o.car.parts[part] - randInt(10, 25));
+            log(s, {
+              text: `🔑 ${o.car.brand} ${o.car.model} kiradan hasarlı döndü (${PART_LABELS[part]} yıprandı).${hasLawyer(s) ? " Avukatınız kiracıdan kısmi tazminat aldı: +5.000 ₺." : ""}`,
+              kind: "uyari",
+            });
+            if (hasLawyer(s)) s.money += 5000;
+          } else {
+            log(s, { text: `🔑 ${o.car.brand} ${o.car.model} kiradan sorunsuz döndü, vitrinde.`, kind: "info" });
+          }
+          o.rental = undefined;
+        }
+      }
+      if (rentIncome > 0) {
+        s.money += rentIncome;
+        log(s, { text: "🔑 Kiradaki araçlardan günlük kira geliri tahsil edildi.", amount: rentIncome, kind: "gelir" });
+      }
+
+      // Senet taksitleri
+      for (const n of s.notes) {
+        if ((n.status !== "aktif" && n.status !== "gecikmis") || n.nextDueDay > s.day) continue;
+        const pDefault = Math.min(0.9, n.risk * (1 + n.missed) * (hasLawyer(s) ? 0.7 : 1));
+        if (chance(pDefault)) {
+          n.missed++;
+          n.status = "gecikmis";
+          n.nextDueDay = s.day + 7;
+          if (n.missed >= 3) {
+            const loss = Math.round(n.remaining * n.principalRatio);
+            n.status = "zarar";
+            s.stats.totalProfit -= loss;
+            log(s, {
+              text: `📉 ${n.buyerName} ${n.carLabel} senedini 3 kez ödemedi, senet zamanaşımına uğradı. Zarar ${fmtMoney(loss)}. (Gecikince İhtar/İcra için Avukat sekmesine bakın.)`,
+              kind: "uyari",
+            });
+          } else {
+            log(s, {
+              text: `⏰ ${n.buyerName} bu haftaki taksiti ödemedi (${n.carLabel}). Avukat sekmesinden ihtar çekebilirsiniz.`,
+              kind: "uyari",
+            });
+          }
+        } else {
+          const amt = Math.min(n.installment, n.remaining);
+          n.remaining -= amt;
+          n.paidCount++;
+          n.missed = 0;
+          n.nextDueDay = s.day + n.intervalDays;
+          s.money += amt;
+          s.stats.totalProfit += amt * (1 - n.principalRatio);
+          if (n.remaining <= 0) {
+            n.status = "tamam";
+            log(s, { text: `✅ ${n.buyerName} ${n.carLabel} senedinin son taksitini ödedi. Senet kapandı.`, amount: amt, kind: "gelir" });
+          } else {
+            n.status = "aktif";
+            log(s, { text: `🧾 ${n.buyerName} senet taksidi: ${fmtMoney(amt)} (${n.paidCount}/${n.count}).`, amount: amt, kind: "gelir" });
+          }
+        }
+      }
+      s.notes = s.notes.filter((n) => n.status === "aktif" || n.status === "gecikmis" || n.takenDay > s.day - 60);
+
+      // Hukuki sorunlu araçlar: tebligat süresi dolduysa icradan alınır
+      for (const o of [...s.inventory]) {
+        if (o.legal && o.legalDeadline !== undefined && o.legalDeadline <= s.day) {
+          s.inventory = s.inventory.filter((x) => x.car.id !== o.car.id);
+          s.jobs = s.jobs.filter((j) => j.carId !== o.car.id);
+          s.customers = s.customers.filter((x) => x.carId !== o.car.id);
+          s.reputation = Math.max(0, s.reputation - 3);
+          s.stats.totalProfit -= o.totalSpent;
+          log(s, {
+            text: `🚨 İCRA! ${o.car.year} ${o.car.brand} ${o.car.model} (${LEGAL_LABELS[o.legal].toLowerCase()}) süresinde çözülmediği için elinizden alındı. Zarar ${fmtMoney(o.totalSpent)}. İtibar -3`,
+            kind: "uyari",
+          });
+        }
+      }
+
+      // Borsa / kripto / döviz günlük hareketi + ihracat talepleri
+      for (const t of stepExchange(s.exchange)) log(s, { text: t, kind: "olay" });
+      refreshExportOffers(s);
+
       // Dükkan gelirleri (yıkama, parça, kafeterya, pompa...)
       const shopIncome = dailyFacilityIncome(s);
       if (shopIncome > 0) {
@@ -748,8 +1194,7 @@ function reducer(state: GameState, action: Action): GameState {
 
       // İlanlar: süresi dolanlar gider, yenileri gelir
       s.listings = s.listings.filter((l) => l.expiresDay > s.day && !l.negotiationDead);
-      const newCount = Math.min(MAX_LISTINGS - s.listings.length, randInt(7, 12));
-      if (newCount > 0) s.listings.push(...freshListings(s.day, newCount));
+      stockListings(s, randInt(30, 50));
 
       // Müşteriler: süresi dolan gider, yenisi gelir
       const leaving = s.customers.filter((c) => c.leavesDay <= s.day);
@@ -837,6 +1282,12 @@ function loadSave(): GameState | null {
       const showroom = parsed.gallerySlots >= 12 ? 4 : parsed.gallerySlots >= 8 ? 3 : parsed.gallerySlots >= 6 ? 2 : 1;
       parsed.facilities = { showroom, atolye: 1 };
     }
+    parsed.notes = parsed.notes ?? [];
+    parsed.exchange = ensureExchange(parsed.exchange);
+    parsed.exports = parsed.exports ?? [];
+    refreshExportOffers(parsed);
+    // Eski kayıtlarda her ile en az MIN_PER_CITY ilan olsun
+    stockListings(parsed, 40);
     return parsed;
   } catch {
     return null;

@@ -87,6 +87,13 @@ export function generateListing(day: number, preferCity?: number): Listing {
   else askMult = rand(0.95, 1.12);
   if (sellerType === "galeriden") askMult += 0.05;
 
+  // Hukuki tuzak: haczli/rehinli/evrağı şüpheli araçlar cazip (düşük) fiyatla ilan edilir
+  let legal: Listing["legal"];
+  if (chance(0.09)) {
+    legal = pick(["haciz", "rehin", "sahte"] as const);
+    askMult *= rand(0.72, 0.85);
+  }
+
   const askingPrice = roundMoney(perceived * askMult, 5000);
   const minMult = mood === "acil" ? rand(0.85, 0.92) : mood === "sabirli" ? rand(0.93, 0.97) : rand(0.88, 0.95);
   const minPrice = roundMoney(askingPrice * minMult, 1000);
@@ -110,5 +117,7 @@ export function generateListing(day: number, preferCity?: number): Listing {
     expertised: false,
     testDriven: false,
     negotiationDead: false,
+    legal,
+    legalChecked: false,
   };
 }

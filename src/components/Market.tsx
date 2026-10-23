@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
 import type { Listing } from "../types";
 import { cityByPlate, roadDistance } from "../data/cities";
+import { LEGAL_LABELS } from "../types";
 import {
   expertiseCostFor,
+  legalCost,
+  LEGAL_CHECK_COST,
   fmtMoney,
   TRANSPORT_COST_PER_KM,
   travelCostFor,
@@ -79,13 +82,17 @@ export function Market() {
         <div className="shelf" key={s.key}>
           <div className="shelf-head">
             <strong>{s.title}</strong>
-            <span>{s.items.length > 0 ? `${s.items.length} araç · ${s.note}` : "boş"}</span>
+            <span>
+              {s.items.length > 0
+                ? `${s.items.length} araç${s.items.length > 30 ? " (en yakın 30'u gösteriliyor)" : ""} · ${s.note}`
+                : "boş"}
+            </span>
           </div>
           {s.items.length === 0 ? (
             <div className="shelf-empty">Bu rafta şu an araç yok.</div>
           ) : (
             <div className="shelf-row">
-              {s.items.map(({ l, km }) => (
+              {s.items.slice(0, 30).map(({ l, km }) => (
                 <ShelfCard key={l.id} listing={l} km={km} onOpen={() => { sfx.click(); setOpenId(l.id); }} />
               ))}
             </div>
@@ -247,6 +254,23 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
 
       <CarSpecs car={car} fullInfo={listing.expertised} declaredHonest={listing.honest} />
 
+      {listing.legalChecked && (
+        <div
+          className="card"
+          style={{ marginTop: 8, borderColor: listing.legal ? "var(--red)" : "var(--green)" }}
+        >
+          ⚖️ Hukuki sorgu sonucu:{" "}
+          {listing.legal ? (
+            <strong style={{ color: "var(--red)" }}>
+              {LEGAL_LABELS[listing.legal]}! Alırsanız 3 gün içinde Avukat sekmesinden çözmelisiniz
+              (uzlaşma ya da dava), yoksa araç icradan alınır.
+            </strong>
+          ) : (
+            <strong style={{ color: "var(--green)" }}>Temiz — haciz/rehin/evrak sorunu yok.</strong>
+          )}
+        </div>
+      )}
+
       <div className="row between" style={{ margin: "12px 0" }}>
         <span className="price">İstenen: {fmtMoney(listing.askingPrice)}</span>
         {transportKm > 0 && (
@@ -282,6 +306,12 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
               onClick={() => dispatch({ type: "EXPERTISE", listingId: listing.id })}
             >
               🔍 Ekspertiz ({fmtMoney(expCost)}, 1 saat)
+            </button>
+            <button
+              disabled={listing.legalChecked || state.money < legalCost(state, LEGAL_CHECK_COST)}
+              onClick={() => dispatch({ type: "LEGAL_CHECK", listingId: listing.id })}
+            >
+              ⚖️ Hukuki Sorgu ({fmtMoney(legalCost(state, LEGAL_CHECK_COST))})
             </button>
             <button disabled={dead} onClick={() => setDriving(true)}>
               🛞 Test Sürüşü (3D)

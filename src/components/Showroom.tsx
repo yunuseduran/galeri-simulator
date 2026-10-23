@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { OwnedCar } from "../types";
-import { fmtMoney, useGame } from "../game/state";
+import { fmtMoney, rentDailyRate, useGame } from "../game/state";
+import { LEGAL_LABELS } from "../types";
 import { carValue, perceivedValue } from "../game/valuation";
 import { CarSpecs } from "./CarSpecs";
 import { Modal } from "./ui";
@@ -115,6 +116,8 @@ function OwnedCard({
   const pv = perceivedValue(car, state.marketModifiers, state.day);
   const interested = state.customers.filter((c) => c.carId === car.id).length;
   const inTransit = owned.inTransitUntilDay && owned.inTransitUntilDay > state.day;
+  const rented = owned.rental && owned.rental.untilDay > state.day ? owned.rental : null;
+  const rate = rentDailyRate(state, owned);
   const [price, setPrice] = useState(owned.askingPrice);
 
   return (
@@ -129,6 +132,16 @@ function OwnedCard({
         <span className="tag">{car.km.toLocaleString("tr-TR")} km</span>
         <span className="tag yellow">Değer: {fmtMoney(pv)}</span>
         {inTransit && <span className="tag blue">🚚 Nakliyede (yarın gelir)</span>}
+        {rented && (
+          <span className="tag blue">
+            🔑 Kirada · gün {rented.untilDay}'e kadar · {fmtMoney(rented.dailyRate)}/gün
+          </span>
+        )}
+        {owned.legal && (
+          <span className="tag red">
+            ⚖️ {LEGAL_LABELS[owned.legal]} — {Math.max(0, (owned.legalDeadline ?? 0) - state.day)} gün içinde Avukat'a!
+          </span>
+        )}
         {car.knownFaults.length > 0 && (
           <span className="tag red">⚠️ {car.knownFaults.length} arıza</span>
         )}
@@ -158,10 +171,24 @@ function OwnedCard({
         <button className="small" onClick={onDetail}>
           📋 Detay
         </button>
-        <button className="small danger" onClick={onWholesale} disabled={!!inTransit}>
+        <button className="small danger" onClick={onWholesale} disabled={!!inTransit || !!rented || !!owned.legal}>
           🚛 Toptancıya Sat
         </button>
       </div>
+      {!inTransit && !rented && (
+        <div className="row" style={{ marginTop: 8 }}>
+          <span style={{ fontSize: 12.5, color: "var(--muted)" }}>🔑 Kirala ({fmtMoney(rate)}/gün):</span>
+          {([10, 20, 30] as const).map((d) => (
+            <button
+              key={d}
+              className="small"
+              onClick={() => dispatch({ type: "START_RENT", carId: car.id, days: d })}
+            >
+              {d} gün
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

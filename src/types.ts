@@ -141,6 +141,61 @@ export interface Listing {
   testDriven: boolean;
   /** Pazarlık kilitlendi mi (satıcı çekildi) */
   negotiationDead: boolean;
+  /** Gizli hukuki sorun (haciz/rehin/sahte evrak). Hukuki sorgu ya da avukatla ortaya çıkar */
+  legal?: LegalIssue;
+  /** Hukuki sorgu yapıldı mı */
+  legalChecked?: boolean;
+}
+
+export type LegalIssue = "haciz" | "rehin" | "sahte";
+
+export const LEGAL_LABELS: Record<LegalIssue, string> = {
+  haciz: "Araç üzerinde haciz var",
+  rehin: "Banka rehni / kredi borcu var",
+  sahte: "Ruhsat/evrak şüpheli",
+};
+
+/** Borsa / kripto / döviz portföyü */
+export interface ExchangeState {
+  prices: Record<string, number>;
+  /** Son 30 günün fiyatları (grafik için) */
+  history: Record<string, number[]>;
+  holdings: Record<string, { qty: number; cost: number }>;
+}
+
+/** Yurt dışı alıcıdan gelen ihracat talebi */
+export interface ExportOffer {
+  id: string;
+  country: string;
+  flag: string;
+  segment: Segment;
+  minYear: number;
+  maxKm: number;
+  /** Piyasa değerine göre çarpan (1.15 = %15 prim) */
+  premium: number;
+  expiresDay: number;
+}
+
+/** Taksitli satış (senet) */
+export interface Senet {
+  id: string;
+  buyerName: string;
+  carLabel: string;
+  /** Senet toplamı (anapara + vade farkı), peşinat hariç */
+  total: number;
+  remaining: number;
+  installment: number;
+  count: number;
+  paidCount: number;
+  intervalDays: number;
+  nextDueDay: number;
+  /** Anaparanın toplama oranı (kâr hesabı için) */
+  principalRatio: number;
+  /** Müşteri başına temerrüt eğilimi 0-1 */
+  risk: number;
+  missed: number;
+  status: "aktif" | "gecikmis" | "tamam" | "zarar";
+  takenDay: number;
 }
 
 export type CustomerStyle = "normal" | "siki" | "acele" | "titiz";
@@ -178,6 +233,18 @@ export interface OwnedCar {
   totalSpent: number; // alış + tamir + masraflar
   askingPrice: number; // vitrindeki satış fiyatı
   inTransitUntilDay?: number; // nakliye ile geliyorsa
+  /** Çözülmemiş hukuki sorun ve icra tebligatının son günü */
+  legal?: LegalIssue;
+  legalDeadline?: number;
+  /** Kiraya verildiyse */
+  rental?: { untilDay: number; dailyRate: number; renter: string };
+}
+
+/** Araç şu an satılabilir/işlenebilir durumda mı (nakliyede ya da kirada değil) */
+export function isAvailable(o: OwnedCar, day: number): boolean {
+  if (o.inTransitUntilDay && o.inTransitUntilDay > day) return false;
+  if (o.rental && o.rental.untilDay > day) return false;
+  return true;
 }
 
 export type JobType = "repair" | "clean" | "cosmetic";
@@ -220,7 +287,7 @@ export interface Loan {
   takenDay: number;
 }
 
-export type StaffRole = "usta" | "danisman" | "detayci";
+export type StaffRole = "usta" | "danisman" | "detayci" | "avukat";
 
 export interface Staff {
   id: string;
@@ -251,6 +318,12 @@ export const STAFF_DEFS: Record<
     emoji: "🧽",
     weeklySalary: 15000,
     desc: "Vitrindeki araçlar tozlanmaz; temizlikleri her gün biraz artar.",
+  },
+  avukat: {
+    label: "Avukat (Kadrolu)",
+    emoji: "⚖️",
+    weeklySalary: 35000,
+    desc: "Hukuki sorgu ve dava ücretleri yarıya iner, davalar daha çok kazanılır, senet tahsilatı ve kira hasarında koruma sağlar.",
   },
 };
 
@@ -303,6 +376,10 @@ export interface GameState {
   rivals: Rival[];
   /** Tesis/dükkan seviyeleri (0 = henüz yok). Anahtarlar: game/facilities.ts */
   facilities: Record<string, number>;
+  /** Taksitli satışlardan doğan senetler */
+  notes: Senet[];
+  exchange: ExchangeState;
+  exports: ExportOffer[];
   log: LogEntry[];
   stats: {
     carsBought: number;

@@ -1,4 +1,4 @@
-import { COSMETIC_LABELS, PART_KEYS, PART_LABELS, STAFF_DEFS, type Cosmetics } from "../types";
+import { COSMETIC_LABELS, PART_KEYS, PART_LABELS, STAFF_DEFS, isAvailable, type Cosmetics } from "../types";
 import {
   adjustJob,
   cleanJob,
@@ -15,7 +15,7 @@ import { sfx } from "../game/sound";
 
 export function Workshop() {
   const { state, dispatch } = useGame();
-  const cars = state.inventory.filter((o) => !o.inTransitUntilDay || o.inTransitUntilDay <= state.day);
+  const cars = state.inventory.filter((o) => isAvailable(o, state.day));
   const hasUsta = state.staff.some((st) => st.role === "usta");
   const lvl = state.level;
   const atolyeLvl = facilityLevel(state, "atolye");

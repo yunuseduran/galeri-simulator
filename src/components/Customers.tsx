@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Customer } from "../types";
-import { CUSTOMER_STYLE_LABELS } from "../types";
-import { fmtMoney, useGame } from "../game/state";
+import { CUSTOMER_STYLE_LABELS, isAvailable } from "../types";
+import { fmtMoney, senetPlan, SENET_MARKUP, useGame } from "../game/state";
 import {
   buyerRespond,
   startBuyerNego,
@@ -43,7 +43,7 @@ function CustomerCard({ customer, onNego }: { customer: Customer; onNego: () => 
   const { state, dispatch } = useGame();
   const o = state.inventory.find((x) => x.car.id === customer.carId);
   if (!o) return null;
-  const inTransit = o.inTransitUntilDay && o.inTransitUntilDay > state.day;
+  const inTransit = !isAvailable(o, state.day);
 
   return (
     <div className="card">
@@ -113,6 +113,8 @@ function NegoModal({ customer, onClose }: { customer: Customer; onClose: () => v
   });
   const [price, setPrice] = useState(o?.askingPrice ?? 0);
   const [done, setDone] = useState<null | "sold" | "left" | "angry">(null);
+  /** Fiyatta anlaşıldı; ödeme şekli (peşin/senet) seçilecek */
+  const [agreed, setAgreed] = useState<number | null>(null);
 
   if (!o) return null;
   const car = o.car;
@@ -150,8 +152,7 @@ function NegoModal({ customer, onClose }: { customer: Customer; onClose: () => v
     if (r.type === "accept") {
       sfx.cash();
       setChat((c) => [...c, { who: "them", text: `${r.message} (${fmtMoney(r.price)})` }]);
-      setDone("sold");
-      dispatch({ type: "CUSTOMER_DEAL", customerId: customer.id, price: r.price });
+      setAgreed(r.price);
     } else if (r.type === "counter") {
       setChat((c) => [...c, { who: "them", text: `${r.message} ${fmtMoney(r.price)}` }]);
       setPrice(Math.round(((asked + r.price) / 2 / 1000)) * 1000);
@@ -170,8 +171,18 @@ function NegoModal({ customer, onClose }: { customer: Customer; onClose: () => v
     if (checkTitiz()) return;
     sfx.cash();
     setChat((c) => [...c, { who: "me", text: `Tamam, ${fmtMoney(nego.lastOffer)} olsun, hayırlı olsun!` }]);
+    setAgreed(nego.lastOffer);
+  }
+
+  function finalize(price: number, senet?: 4 | 8 | 12) {
+    sfx.cash();
     setDone("sold");
-    dispatch({ type: "CUSTOMER_DEAL", customerId: customer.id, price: nego.lastOffer });
+    dispatch({
+      type: "CUSTOMER_DEAL",
+      customerId: customer.id,
+      price,
+      senet: senet ? { count: senet } : undefined,
+    });
   }
 
   return (
@@ -197,7 +208,38 @@ function NegoModal({ customer, onClose }: { customer: Customer; onClose: () => v
         ))}
       </div>
 
-      {!done && (
+      {!done && agreed !== null && (
+        <div className="card" style={{ borderColor: "var(--green)" }}>
+          <strong style={{ color: "var(--green)" }}>🤝 {fmtMoney(agreed)} fiyatta anlaştınız! Ödeme nasıl olsun?</strong>
+          {o.legal && (
+            <div style={{ fontSize: 12.5, color: "var(--red)", marginTop: 6 }}>
+              ⚠️ Bu araçta çözülmemiş hukuki sorun var — satarsanız alıcı dava açar!
+            </div>
+          )}
+          <div className="deliver-options">
+            <button className="deliver-btn primary" onClick={() => finalize(agreed)}>
+              <span className="big">💵</span>
+              <span className="t">Peşin</span>
+              <span className="d">{fmtMoney(agreed)} hemen kasanıza girer</span>
+            </button>
+            {([4, 8, 12] as const).map((n) => {
+              const p = senetPlan(agreed, n);
+              return (
+                <button key={n} className="deliver-btn" onClick={() => finalize(agreed, n)}>
+                  <span className="big">🧾</span>
+                  <span className="t">Senetli — {n} hafta</span>
+                  <span className="d">
+                    {fmtMoney(p.down)} peşin + {n} × {fmtMoney(p.installment)} · toplam{" "}
+                    {fmtMoney(p.down + p.total)} (+%{Math.round(SENET_MARKUP[n] * 100)} vade farkı) · ödemeyen çıkabilir!
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {!done && agreed === null && (
         <>
           <div className="row">
             <input

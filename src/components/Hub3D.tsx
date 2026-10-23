@@ -16,6 +16,9 @@ export type PanelKey =
   | "atolye"
   | "musteri"
   | "ofis"
+  | "avukat"
+  | "borsa"
+  | "ihracat"
   | "lig"
   | "kariyer"
   | "defter";
@@ -70,7 +73,7 @@ const FACILITY_PANEL: Record<FacilityKey, PanelKey> = {
 const CAR_COLORS = [0xc0473e, 0x3e6ec0, 0x3ec06b, 0xc0a23e, 0x8e8e8e, 0xd8d8d8, 0x5a3ec0];
 
 /** Kameranın uçabileceği yerler */
-export type FlyTarget = FacilityKey | "pazar" | "lig" | "ofis" | "musteri" | "overview";
+export type FlyTarget = FacilityKey | "pazar" | "lig" | "ofis" | "avukat" | "borsa" | "ihracat" | "musteri" | "overview";
 
 export interface Hub3DHandle {
   flyTo: (target: FlyTarget) => void;
@@ -84,6 +87,9 @@ function cameraPreset(target: FlyTarget): { pos: THREE.Vector3; tgt: THREE.Vecto
   if (target === "pazar") return { pos: new THREE.Vector3(12.5, 5.5, 16), tgt: new THREE.Vector3(17.5, 3.4, 8.6) };
   if (target === "lig") return { pos: new THREE.Vector3(11, 5, 2), tgt: new THREE.Vector3(17.5, 3.6, -4) };
   if (target === "ofis") return { pos: new THREE.Vector3(15.5, 5, 1), tgt: new THREE.Vector3(10.5, 1.4, -5.5) };
+  if (target === "avukat") return { pos: new THREE.Vector3(13, 5, 9), tgt: new THREE.Vector3(17.5, 1.4, 2.5) };
+  if (target === "borsa") return { pos: new THREE.Vector3(-3, 6, 4), tgt: new THREE.Vector3(-3, 3, -11) };
+  if (target === "ihracat") return { pos: new THREE.Vector3(6, 6, 4), tgt: new THREE.Vector3(6, 1.5, -11) };
   if (target === "musteri") return { pos: new THREE.Vector3(-6, 4, 16), tgt: new THREE.Vector3(-11, 0.8, 8.5) };
   const [x, z, w] = LOTS[target];
   return {
@@ -207,6 +213,10 @@ export const Hub3D = forwardRef<Hub3DHandle, { onOpen: (panel: PanelKey, facilit
     } | null = null;
     flyRef.current = (target: FlyTarget) => {
       const preset = cameraPreset(target);
+      // Dikey (telefon) ekranda bina kadraja sığsın diye kamerayı hedeften uzaklaştır
+      if (camera.aspect < 1 && target !== "overview") {
+        preset.pos.sub(preset.tgt).multiplyScalar(Math.min(2.2, 1 / Math.max(0.45, camera.aspect))).add(preset.tgt);
+      }
       tween = {
         fromPos: camera.position.clone(),
         toPos: preset.pos,
@@ -497,6 +507,85 @@ export const Hub3D = forwardRef<Hub3DHandle, { onOpen: (panel: PanelKey, facilit
     office.add(oLabel);
     scene.add(office);
     clickables.push({ obj: office, hit: { panel: "ofis", label: "🏦 Ofis" } });
+
+    // Avukat bürosu: tıklanınca Hukuk paneli açılır
+    const lawyerOffice = new THREE.Group();
+    lawyerOffice.position.set(17.5, 0, 2.5);
+    const lBody = new THREE.Mesh(
+      new THREE.BoxGeometry(3.2, 2.6, 3),
+      new THREE.MeshLambertMaterial({ color: 0x2a3550 })
+    );
+    lBody.position.y = 1.3;
+    lawyerOffice.add(lBody);
+    const lRoof = new THREE.Mesh(
+      new THREE.BoxGeometry(3.5, 0.3, 3.3),
+      new THREE.MeshLambertMaterial({ color: 0xb08d57 })
+    );
+    lRoof.position.y = 2.75;
+    lawyerOffice.add(lRoof);
+    for (const px of [-1.1, 0, 1.1]) {
+      const col = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 2.4, 8),
+        new THREE.MeshLambertMaterial({ color: 0xe8edf7 })
+      );
+      col.position.set(px, 1.2, 1.7);
+      lawyerOffice.add(col);
+    }
+    const lLabel = makeLabelSprite("⚖️ Avukat", 0.8);
+    lLabel.position.set(0, 4, 0);
+    lawyerOffice.add(lLabel);
+    scene.add(lawyerOffice);
+    clickables.push({ obj: lawyerOffice, hit: { panel: "avukat", label: "⚖️ Avukat" } });
+
+    // Borsa kulesi: cam gövde, tepede yanıp sönen ticker
+    const bourse = new THREE.Group();
+    bourse.position.set(-3, 0, -11);
+    const bTower = new THREE.Mesh(
+      new THREE.BoxGeometry(3.4, 6, 3.4),
+      new THREE.MeshLambertMaterial({ color: 0x2c4a6e })
+    );
+    bTower.position.y = 3;
+    bourse.add(bTower);
+    const bGlass = new THREE.Mesh(
+      new THREE.PlaneGeometry(3, 5.2),
+      new THREE.MeshLambertMaterial({ color: 0x8fb8e8, emissive: 0x3ecf8e, emissiveIntensity: 0.25 })
+    );
+    bGlass.position.set(0, 3, 1.71);
+    bourse.add(bGlass);
+    const bLabel = makeLabelSprite("📈 Borsa", 0.9);
+    bLabel.position.set(0, 7.3, 0);
+    bourse.add(bLabel);
+    scene.add(bourse);
+    clickables.push({ obj: bourse, hit: { panel: "borsa", label: "📈 Borsa" } });
+
+    // İhracat limanı: depo + konteynerler
+    const port = new THREE.Group();
+    port.position.set(6, 0, -11);
+    const pShed = new THREE.Mesh(
+      new THREE.BoxGeometry(5, 2.2, 3),
+      new THREE.MeshLambertMaterial({ color: 0x3a4560 })
+    );
+    pShed.position.y = 1.1;
+    port.add(pShed);
+    [0xc0473e, 0x3e6ec0, 0x3ec06b, 0xc0a23e].forEach((col, i) => {
+      const box = new THREE.Mesh(
+        new THREE.BoxGeometry(1.6, 1.1, 1.1),
+        new THREE.MeshLambertMaterial({ color: col })
+      );
+      box.position.set(-2 + i * 1.4, 0.55 + (i % 2) * 1.1, 2.4);
+      port.add(box);
+    });
+    const crane = new THREE.Mesh(
+      new THREE.BoxGeometry(0.25, 4.5, 0.25),
+      new THREE.MeshLambertMaterial({ color: 0xff8c5c })
+    );
+    crane.position.set(2.8, 2.25, 1);
+    port.add(crane);
+    const pLabel = makeLabelSprite("🚢 İhracat", 0.85);
+    pLabel.position.set(0, 4.2, 0);
+    port.add(pLabel);
+    scene.add(port);
+    clickables.push({ obj: port, hit: { panel: "ihracat", label: "🚢 İhracat" } });
 
     // ---- aktörler ----
     const roadCars: { g: THREE.Group; speed: number; dir: 1 | -1 }[] = [];
@@ -826,8 +915,9 @@ export const Hub3D = forwardRef<Hub3DHandle, { onOpen: (panel: PanelKey, facilit
 
       controls.update();
       renderer.render(scene, camera);
-      const win = window as unknown as { __hubFrames?: number };
+      const win = window as unknown as { __hubFrames?: number; __hubCam?: number[] };
       win.__hubFrames = (win.__hubFrames ?? 0) + 1;
+      win.__hubCam = [camera.position.x, camera.position.y, camera.position.z, controls.target.x, controls.target.y, controls.target.z];
     });
 
     return () => {

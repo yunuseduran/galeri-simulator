@@ -1,4 +1,5 @@
 import type { Customer, CustomerStyle, GameState, OwnedCar } from "../types";
+import { isAvailable } from "../types";
 import { CUSTOMER_EMOJIS } from "../data/names";
 import { randomPersonName } from "./carFactory";
 import { perceivedValue } from "./valuation";
@@ -53,7 +54,7 @@ export function generateCustomer(state: GameState, owned: OwnedCar): Customer {
 /** Gün başında galeriye gelecek müşterileri üretir */
 export function dailyCustomers(state: GameState): Customer[] {
   const sellable = state.inventory.filter(
-    (o) => !o.inTransitUntilDay || o.inTransitUntilDay <= state.day
+    (o) => isAvailable(o, state.day)
   );
   if (sellable.length === 0) return [];
 
