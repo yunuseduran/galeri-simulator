@@ -61,7 +61,8 @@ function withCar(base: GameState, legal?: OwnedCar["legal"]): { s: GameState; cu
   const s2 = JSON.parse(JSON.stringify(s1)) as GameState;
   s2.notes[0].risk = 1;
   let bad = s2;
-  for (let i = 0; i < 40; i++) bad = applyAction(bad, { type: "END_DAY" });
+  // Rastgele %10 ödeme şansı seriyi bozabilir; batığa dönene kadar (en çok 400 gün) ilerle
+  for (let i = 0; i < 400 && bad.notes[0]?.status !== "zarar"; i++) bad = applyAction(bad, { type: "END_DAY" });
   assert(bad.notes[0]?.status === "zarar", "temerrütteki senet 3 gecikmeden sonra batık işaretlendi");
 
   // İhtar / icra

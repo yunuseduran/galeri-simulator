@@ -47,7 +47,9 @@ export function Market() {
     const near = withKm.filter((x) => x.km > 0 && x.km <= 300).sort(sortFn);
     const far = withKm.filter((x) => x.km > 300).sort(sortFn);
     const hot = withKm.filter((x) => x.l.sellerMood === "acil").sort(sortFn);
+    const premium = withKm.filter((x) => x.l.car.segment === "ust" && !!x.l.car.chassis).sort(sortFn);
     return [
+      { key: "premium", title: "💎 Üst segment — kasa kodlu araçlar", items: premium, note: "BMW G20/G30, Mercedes W206/G-Kasa, Audi B9…" },
       { key: "hot", title: "🔥 Fırsat rafı — acil satılıklar", items: hot, note: "Sahibi acele ediyor, pazarlık payı yüksek" },
       { key: "here", title: `📍 Bulunduğun il — ${cityByPlate(state.currentCity).name}`, items: here, note: "Hemen inceleyip pazarlığa oturabilirsin" },
       { key: "near", title: "🚗 Yakın iller (≤300 km)", items: near, note: "Kısa yol, düşük masraf" },
@@ -113,6 +115,7 @@ function ShelfCard({ listing, km, onOpen }: { listing: Listing; km: number; onOp
       <div className="shelf-car">🚗</div>
       <div className="shelf-title">
         {car.year} {car.brand} {car.model}
+        {car.chassis && <span style={{ color: "var(--accent2)" }}> · {car.chassis}</span>}
       </div>
       <div className="shelf-sub">
         📍 {city.name} {km > 0 ? `· ${km} km` : "· buradasın"}
@@ -248,6 +251,7 @@ function ListingDetail({ listing, onClose }: { listing: Listing; onClose: () => 
     <div>
       <h2 style={{ margin: "6px 0 4px" }}>
         {car.year} {car.brand} {car.model}
+        {car.chassis && <span style={{ color: "var(--accent2)" }}> ({car.chassis})</span>}
       </h2>
       <div className="sub" style={{ color: "var(--muted)", marginBottom: 10 }}>
         📍 {city.name} · Satıcı: {listing.sellerName} (

@@ -40,7 +40,16 @@ export const SEGMENT_LABELS: Record<Segment, string> = {
   klasik: "Klasik",
 };
 
+/** Kasa (nesil) kodu: model yılı aralığına göre aracın hangi kasa olduğunu belirler (ör. BMW G20) */
+export interface ChassisDef {
+  code: string;
+  minYear: number;
+  maxYear: number;
+}
+
 export interface ModelDef {
+  /** Üst segment modellerde kasa kodları */
+  chassis?: ChassisDef[];
   brand: string;
   model: string;
   segment: Segment;
@@ -94,6 +103,8 @@ export const COSMETIC_LABELS: Record<keyof Cosmetics, string> = {
 };
 
 export interface Car {
+  /** Kasa kodu (üst segment): ör. "G20", "W205", "G-Kasa" */
+  chassis?: string;
   id: string;
   brand: string;
   model: string;

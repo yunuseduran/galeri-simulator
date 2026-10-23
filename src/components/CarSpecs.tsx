@@ -27,6 +27,7 @@ export function CarSpecs({
       <div className="row" style={{ marginBottom: 8 }}>
         <span className="tag blue">{SEGMENT_LABELS[car.segment]}</span>
         <span className="tag">{car.year}</span>
+        {car.chassis && <span className="tag yellow">🏷️ Kasa: {car.chassis}</span>}
         <span className="tag">{car.km.toLocaleString("tr-TR")} km</span>
         <span className="tag">{FUEL_LABELS[car.fuel]}</span>
         <span className="tag">{car.gear === "otomatik" ? "Otomatik" : "Manuel"}</span>

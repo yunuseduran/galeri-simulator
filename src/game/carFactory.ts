@@ -35,6 +35,7 @@ export function generateCar(): Car {
     id: uid("car"),
     brand: def.brand,
     model: def.model,
+    chassis: def.chassis?.find((c) => year >= c.minYear && year <= c.maxYear)?.code,
     segment: def.segment,
     year,
     km,
